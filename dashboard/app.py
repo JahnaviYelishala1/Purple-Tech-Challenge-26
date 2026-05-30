@@ -14,7 +14,7 @@ from streamlit_autorefresh import st_autorefresh
 
 
 API_BASE_URL = os.getenv("API_BASE_URL", "http://127.0.0.1:8000").rstrip("/")
-DEFAULT_STORE_ID = "STORE_BLR_001"
+DEFAULT_STORE_ID = os.getenv("DEFAULT_STORE_ID", "STORE_BLR_002")
 REFRESH_SECONDS = 10
 
 FUNNEL_ORDER = ["ENTRY", "ZONE_VISIT", "BILLING_QUEUE", "PURCHASE"]
@@ -483,7 +483,10 @@ def format_int(value: Any) -> str:
 
 def format_percent(value: Any) -> str:
     try:
-        return f"{float(value):.1f}%"
+        numeric_value = float(value)
+        if 0 <= numeric_value <= 1:
+            numeric_value *= 100
+        return f"{numeric_value:.1f}%"
     except (TypeError, ValueError):
         return "0.0%"
 
@@ -526,7 +529,7 @@ def render_kpi_card(label: str, value: str, icon: str, accent: str, icon_bg: str
 
 
 def normalize_funnel_stages(raw_stages: list[dict[str, Any]]) -> pd.DataFrame:
-    by_stage = {str(stage.get("stage", "")).upper(): stage for stage in raw_stages}
+    by_stage = {str(stage.get("stage", "")).upper().replace(" ", "_"): stage for stage in raw_stages}
     rows: list[dict[str, Any]] = []
     previous_count: int | None = None
 
@@ -625,7 +628,7 @@ def render_anomaly_card(anomaly: dict[str, Any]) -> None:
     title = ALERT_LABELS.get(anomaly_type, anomaly_type.replace("_", " ").title())
     description = ALERT_DESCRIPTIONS.get(
         anomaly_type,
-        str(anomaly.get("description", "A store condition needs attention.")),
+        str(anomaly.get("description", anomaly.get("message", "A store condition needs attention."))),
     )
     suggested_action = str(anomaly.get("suggested_action", "Review the store team dashboard and take action."))
     st.markdown(
@@ -682,8 +685,16 @@ if funnel_result.ok and funnel_result.payload:
     raw_stages = funnel_result.payload.get("stages", [])
     if isinstance(raw_stages, list):
         funnel_stages = raw_stages
+stage_counts = {str(stage.get("stage", "")).upper().replace(" ", "_"): stage for stage in funnel_stages if isinstance(stage, dict)}
 
 if metrics_result.ok and metrics_result.payload:
+    active_visitors = metrics.get(
+        "active_visitors",
+        max(int(metrics.get("total_entries", 0) or 0) - int(metrics.get("total_exits", 0) or 0), 0),
+    )
+    converted_visitors = metrics.get("converted_visitors", stage_counts.get("PURCHASE", {}).get("count", 0))
+    metrics.setdefault("active_visitors", active_visitors)
+    metrics.setdefault("converted_visitors", converted_visitors)
     kpi_cols = st.columns(4)
     kpi_cards = [
         ("Unique Visitors", format_int(metrics.get("unique_visitors", 0)), "👥", "#2563eb", "#eff6ff", "Customers observed today"),
@@ -700,7 +711,10 @@ else:
 render_section_heading("Customer Activity Overview", "Today's customer flow and store activity at a glance.")
 if activity_result.ok and activity_result.payload:
     activity = activity_result.payload.get("activity_summary", {})
-    stage_counts = {str(stage.get("stage", "")).upper(): stage for stage in funnel_stages if isinstance(stage, dict)}
+else:
+    activity = {}
+
+if metrics_result.ok or funnel_result.ok:
     store_entries = stage_counts.get("ENTRY", {}).get("count", activity.get("entries_today", 0))
     billing_interactions = stage_counts.get("BILLING_QUEUE", {}).get("count", activity.get("billing_interactions_today", 0))
     purchases = metrics.get("converted_visitors", activity.get("purchases_today", 0))
@@ -734,13 +748,16 @@ else:
 
 render_section_heading("Zone Performance", "Traffic concentration and dwell behavior across the store.")
 if heatmap_result.ok and heatmap_result.payload:
-    zones = heatmap_result.payload.get("zones", [])
+    zones = heatmap_result.payload.get("zones", heatmap_result.payload.get("value", []))
     heatmap_df = pd.DataFrame(zones if isinstance(zones, list) else [])
     if not heatmap_df.empty:
+        if "avg_dwell_ms" in heatmap_df.columns:
+            heatmap_df["avg_dwell_ms"] = pd.to_numeric(heatmap_df["avg_dwell_ms"], errors="coerce").fillna(0.0) / 1000
         heatmap_df = heatmap_df.rename(
             columns={
                 "zone_id": "Zone",
                 "visit_count": "Visit Count",
+                "avg_dwell_ms": "Average Dwell Time",
                 "avg_dwell_seconds": "Average Dwell Time",
             }
         )
@@ -769,7 +786,7 @@ else:
 
 render_section_heading("Operational Alerts", "Business-focused alerts for retail managers.")
 if anomalies_result.ok and anomalies_result.payload:
-    anomalies = anomalies_result.payload.get("anomalies", [])
+    anomalies = anomalies_result.payload.get("anomalies", anomalies_result.payload.get("value", []))
     if isinstance(anomalies, list) and anomalies:
         for row_start in range(0, len(anomalies), 3):
             cols = st.columns(3)
