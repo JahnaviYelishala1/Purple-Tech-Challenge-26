@@ -8,7 +8,11 @@ The goal of the Store Intelligence Platform is to turn raw retail activity into 
 
 The system is organized as a layered FastAPI application. HTTP routes live in `app/api/` and only handle request validation, dependency injection, and response mapping. All domain logic is kept in `app/services/`, which prevents analytics rules from being spread across route handlers. Data persistence is handled by SQLAlchemy ORM models in `app/models/`, while Pydantic schemas in `app/schemas/` define strict request and response contracts. Cross-cutting concerns such as configuration, logging, and middleware live in `app/core/`. Database engine and initialization logic live in `app/db/`.
 
-The submission includes a draw.io architecture diagram at [docs/store-intelligence-architecture.drawio](docs/store-intelligence-architecture.drawio). It documents the execution path from CCTV cameras through YOLOv8, tracking, event publication, FastAPI, SQLite, analytics, and the Streamlit dashboard.
+The submission includes a GitHub-viewable SVG diagram at [docs/store-intelligence-architecture.svg](docs/store-intelligence-architecture.svg) and the editable draw.io source at [docs/store-intelligence-architecture.drawio](docs/store-intelligence-architecture.drawio). They document the execution path from CCTV cameras through YOLOv8, tracking, event publication, FastAPI, SQLite, analytics, and the Streamlit dashboard.
+
+Open editable diagram in diagrams.net (loads the file from this repo):
+
+- https://app.diagrams.net/?open=https%3A%2F%2Fraw.githubusercontent.com%2FJahnaviYelishala1%2FPurple-Tech-Challenge-26%2Fmaster%2Fdocs%2Fstore-intelligence-architecture.drawio
 
 This structure is intentionally simple but scalable. It allows new analytics capabilities to be added as new services and routes without changing the established boundaries. It also makes the codebase easier to test, because service logic can be exercised without a live HTTP server.
 

@@ -156,9 +156,19 @@ Optional environment variables:
 
 ## 13. Architecture Diagram
 
-The draw.io source for the submission architecture lives here:
+The architecture diagram is available in a GitHub-viewable SVG and an editable draw.io source:
+
+Inline diagram (click to open full size):
+
+![Store Intelligence Architecture](docs/store-intelligence-architecture.svg)
+
+Editable source (draw.io):
 
 - [docs/store-intelligence-architecture.drawio](docs/store-intelligence-architecture.drawio)
+
+Open editable diagram in diagrams.net (one-click):
+
+- [Open in diagrams.net](https://app.diagrams.net/?open=https%3A%2F%2Fraw.githubusercontent.com%2FJahnaviYelishala1%2FPurple-Tech-Challenge-26%2Fmaster%2Fdocs%2Fstore-intelligence-architecture.drawio)
 
 It shows the end-to-end path from CCTV cameras through YOLOv8, tracking, event publishing, FastAPI, SQLite, analytics, and the Streamlit dashboard.
 
