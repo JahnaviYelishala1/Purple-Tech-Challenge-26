@@ -33,6 +33,20 @@ Key flow:
 - Analytics services compute metrics, funnels, heatmaps, and anomalies.
 - The Streamlit dashboard reads JSON responses from the deployed API and renders the live store view.
 
+### Pipeline Flow
+
+The pipeline below shows how the five CCTV feeds from one store become normalized retail events and then dashboard-ready analytics. The important detail is that camera feeds remain separate through `camera_id`, but all events roll up into the same `store_id` for one store-level dashboard.
+
+![Store Intelligence Pipeline Flow](docs/pipeline.png)
+
+Pipeline stages:
+
+- Input layer: five CCTV videos, optional POS transactions, and optional synthetic demo events.
+- Computer vision layer: frame inspection, customer detection, tracking IDs, and camera-specific rules.
+- Event generation layer: detections become structured events such as `ENTRY`, `ZONE_DWELL`, and `BILLING_QUEUE_JOIN`.
+- Backend and service layer: FastAPI accepts events, removes duplicates, updates sessions, computes metrics, builds funnels, and detects anomalies.
+- Database and dashboard layer: SQLAlchemy stores events/sessions/transactions, while Streamlit queries the API and renders the live analytics view.
+
 ### CCTV Video Interpretation
 
 The provided videos are treated as multiple CCTV camera feeds from one physical store, not as separate stores. Each feed contributes events to the same `store_id`, while `camera_id` identifies where the event came from.
