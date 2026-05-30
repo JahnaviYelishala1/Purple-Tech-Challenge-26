@@ -19,6 +19,36 @@ The codebase follows a layered FastAPI architecture:
 
 This separation keeps route handlers thin and makes the core analytics logic easy to test in isolation.
 
+### System Architecture
+
+The platform is organized as an end-to-end retail intelligence pipeline. CCTV/video-derived events, POS transactions, and synthetic demo events are ingested by the FastAPI backend. The service layer turns those raw events into sessions, conversion metrics, funnel stages, heatmap data, and operational alerts. The Streamlit dashboard then queries the API and presents the analytics for store teams.
+
+![Store Intelligence Platform Architecture](docs/architectural-diagram.png)
+
+Key flow:
+
+- CCTV/video feeds and demo generators produce customer activity events.
+- Event and transaction payloads are sent to the FastAPI ingestion endpoints.
+- SQLAlchemy persists events, sessions, stores, and transactions.
+- Analytics services compute metrics, funnels, heatmaps, and anomalies.
+- The Streamlit dashboard reads JSON responses from the deployed API and renders the live store view.
+
+### CCTV Video Interpretation
+
+The provided videos are treated as multiple CCTV camera feeds from one physical store, not as separate stores. Each feed contributes events to the same `store_id`, while `camera_id` identifies where the event came from.
+
+Camera mapping used for the demo story:
+
+- `cam3` - entrance camera, used for customer entry detection
+- `cam5` - billing area camera, used for billing queue and checkout activity
+- Remaining camera feeds - store-zone coverage for aisle movement, dwell behavior, and operational context
+
+This keeps the dashboard focused on one store-level view while still showing that the analytics pipeline can combine evidence from multiple camera angles.
+
+![YOLO Customer Detection](docs/screenshots/yolo-detection.png)
+
+![Tracking IDs Across Camera Frames](docs/screenshots/tracking-ids.png)
+
 ## 3. Features
 
 - Event ingestion with idempotency
@@ -144,6 +174,14 @@ Swagger provides interactive request/response testing for the ingestion and anal
 
 A lightweight Streamlit dashboard is included to demonstrate the live analytics pipeline.
 
+Live dashboard:
+
+- https://store-intelligence-dashboard-knpe.onrender.com/
+
+Live API:
+
+- https://store-intelligence-api.onrender.com/
+
 Start the API:
 
 ```powershell
@@ -171,31 +209,41 @@ Dashboard capabilities:
 Optional environment variables:
 
 - `API_BASE_URL` (default: `http://127.0.0.1:8000`)
-- `STORE_IDS` (default: `store-001,store-002,store-003`)
+- `DEFAULT_STORE_ID` (default: `STORE_BLR_002` for the deployed demo)
 
-## 13. Architecture Diagram
+### Dashboard Walkthrough
 
-The architecture diagram is available in a GitHub-viewable SVG and an editable draw.io source:
+The deployed dashboard is arranged as a scrollable store operations view. It starts with executive KPIs, then moves into activity, funnel behavior, zone performance, alerts, and final business outcomes.
 
-Inline diagram (click to open full size):
+#### 1. KPI Summary and Customer Activity
 
-![Store Intelligence Architecture](docs/store-intelligence-architecture.svg)
+The first screen gives the store manager a fast health check: unique visitors, active visitors, completed purchases, and conversion rate. The second KPI row summarizes today's operational activity, including entries, billing interactions, purchases, and total customer events.
 
-Editable source (draw.io):
+![Dashboard KPI and Customer Activity](docs/Screenshot%202026-05-31%20003905.png)
 
-- [docs/store-intelligence-architecture.drawio](docs/store-intelligence-architecture.drawio)
+#### 2. Customer Journey Funnel
 
-Open editable diagram in diagrams.net (one-click):
+The funnel view shows how customers move from entry to zone engagement, billing interest, and completed purchase. It makes drop-off visible at each stage so the store team can identify where attention is needed.
 
-- [Open in diagrams.net](https://app.diagrams.net/?open=https%3A%2F%2Fraw.githubusercontent.com%2FJahnaviYelishala1%2FPurple-Tech-Challenge-26%2Fmaster%2Fdocs%2Fstore-intelligence-architecture.drawio)
+![Customer Journey Funnel](docs/Screenshot%202026-05-31%20003940.png)
 
-It shows the end-to-end path from CCTV cameras through YOLOv8, tracking, event publishing, FastAPI, SQLite, analytics, and the Streamlit dashboard.
+#### 3. CCTV Pipeline Status
 
-## 14. Submission Assets
+The CCTV pipeline status panel connects the dashboard back to the camera feeds. It is used as proof that entrance, billing, and zone events are produced from camera-specific processing before they become store-level analytics.
 
-- Dashboard screenshots should be saved in `docs/screenshots/`
-- Keep demo video files out of the repository; `.gitignore` already excludes the common locations
-- The demo runner prints a compact summary, including CCTV pipeline status, funnel, heatmap, and anomaly output
+![CCTV Pipeline Status](docs/screenshots/cctv-pipeline-status.png)
+
+#### 4. Zone Performance and Operational Alerts
+
+The zone performance section is used for heatmap and dwell-time analytics. The operational alerts section highlights anomalies such as queue spikes, low-engagement zones, or conversion drops when they are detected.
+
+![Zone Performance and Operational Alerts](docs/zone-performance%20and%20operational%20alerts.png)
+
+#### 5. Business Value and Outcomes
+
+The closing dashboard section explains the retail value of the solution and summarizes the impact areas: journey insights, zone performance, queue monitoring, and real-time decision support.
+
+![Business Value and Outcomes](docs/Screenshot%202026-05-31%20004045.png)
 
 ## 12. Demo Data Generator
 
@@ -218,3 +266,9 @@ Useful flags:
 - `--volume`: visitor journeys per run
 - `--batch-size`: events per ingest request
 - `--sleep-seconds`: delay between batches for live demos
+
+## 13. Submission Assets
+
+- Dashboard screenshots are saved in `docs/` and `docs/screenshots/`
+- Keep demo video files out of the repository; `.gitignore` already excludes the common locations
+- The demo runner prints a compact summary, including CCTV pipeline status, funnel, heatmap, and anomaly output
