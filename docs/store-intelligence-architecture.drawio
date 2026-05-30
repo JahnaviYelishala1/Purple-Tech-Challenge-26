@@ -1,0 +1,55 @@
+<mxfile host="app.diagrams.net" modified="2026-05-30T00:00:00.000Z" agent="GitHub Copilot" version="24.7.5">
+  <diagram id="store-intelligence-architecture" name="Store Intelligence Architecture">
+    <mxGraphModel dx="1600" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="cam" value="CAM2 / CAM5" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dbeafe;strokeColor=#2563eb;fontSize=16;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="80" y="80" width="170" height="58" as="geometry" />
+        </mxCell>
+        <mxCell id="yolo" value="YOLOv8" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dcfce7;strokeColor=#16a34a;fontSize=16;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="310" y="80" width="170" height="58" as="geometry" />
+        </mxCell>
+        <mxCell id="track" value="Tracking" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fef3c7;strokeColor=#f59e0b;fontSize=16;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="540" y="80" width="170" height="58" as="geometry" />
+        </mxCell>
+        <mxCell id="publisher" value="Event Publisher" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe4e6;strokeColor=#e11d48;fontSize=16;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="770" y="80" width="190" height="58" as="geometry" />
+        </mxCell>
+        <mxCell id="fastapi" value="FastAPI" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ede9fe;strokeColor=#7c3aed;fontSize=16;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1000" y="80" width="170" height="58" as="geometry" />
+        </mxCell>
+        <mxCell id="sqlite" value="SQLite" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e0f2fe;strokeColor=#0284c7;fontSize=16;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1230" y="80" width="170" height="58" as="geometry" />
+        </mxCell>
+        <mxCell id="analytics" value="Metrics | Funnel | Heatmap | Anomalies" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8fafc;strokeColor=#0f172a;fontSize=15;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="430" y="230" width="420" height="64" as="geometry" />
+        </mxCell>
+        <mxCell id="dashboard" value="Streamlit Dashboard" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#eff6ff;strokeColor=#1d4ed8;fontSize=16;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="530" y="380" width="220" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeColor=#94a3b8;" edge="1" parent="1" source="cam" target="yolo">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeColor=#94a3b8;" edge="1" parent="1" source="yolo" target="track">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeColor=#94a3b8;" edge="1" parent="1" source="track" target="publisher">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeColor=#94a3b8;" edge="1" parent="1" source="publisher" target="fastapi">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeColor=#94a3b8;" edge="1" parent="1" source="fastapi" target="sqlite">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeColor=#94a3b8;" edge="1" parent="1" source="sqlite" target="analytics">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeColor=#94a3b8;" edge="1" parent="1" source="analytics" target="dashboard">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

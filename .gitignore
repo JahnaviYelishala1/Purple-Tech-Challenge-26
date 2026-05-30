@@ -1,0 +1,10 @@
+CCTV Footage/
+outputs/
+venv/
+__pycache__/
+.pytest_cache/
+.coverage
+.env
+.env.*
+*.db
+*.sqlite3

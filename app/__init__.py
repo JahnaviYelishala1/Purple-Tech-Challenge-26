@@ -1,0 +1,1 @@
+"""Store Intelligence Platform application package."""
