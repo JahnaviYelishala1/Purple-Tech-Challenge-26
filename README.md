@@ -95,6 +95,25 @@ docker compose up --build
 
 The container exposes port `8000` and mounts `./data` so the SQLite database persists across runs.
 
+## 7.1 Deploy on Render
+
+This repository includes a Render blueprint file: `render.yaml`.
+
+### One-time setup
+
+1. Open Render and create a new Blueprint deploy from this GitHub repository.
+2. Render will detect `render.yaml` and create two web services:
+	- `store-intelligence-api`
+	- `store-intelligence-dashboard`
+3. After the first deploy, copy the API service URL (for example: `https://store-intelligence-api.onrender.com`).
+4. In the dashboard service settings, set `API_BASE_URL` to that API URL and redeploy the dashboard.
+
+### Notes
+
+- The current Render blueprint uses SQLite at `/tmp/store_intelligence.db` for quick challenge deployment.
+- `/tmp` is ephemeral on Render, so data may reset on restarts.
+- For persistent production data, move to Render Postgres and set `DATABASE_URL` to the provided Postgres URL.
+
 ## 8. Running Tests
 
 Run the test suite:

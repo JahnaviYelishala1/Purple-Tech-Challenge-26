@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from html import escape
+import os
 from typing import Any
 
 import pandas as pd
@@ -12,7 +13,7 @@ import streamlit as st
 from streamlit_autorefresh import st_autorefresh
 
 
-API_BASE_URL = "http://127.0.0.1:8000"
+API_BASE_URL = os.getenv("API_BASE_URL", "http://127.0.0.1:8000").rstrip("/")
 DEFAULT_STORE_ID = "STORE_BLR_001"
 REFRESH_SECONDS = 10
 
