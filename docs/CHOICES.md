@@ -189,3 +189,11 @@ The tradeoff is that independent component scaling is not as immediate as with m
 ### Why the Choice Was Made
 
 The final choice balanced ambition with execution reality. A modular monolith delivered fast implementation, easier testing, and low operational complexity while preserving architectural clarity.
+
+## Why YOLOv8
+
+YOLOv8 was chosen as the reference detection approach because the small variant provides a good balance of latency and accuracy, has a mature Python API, and is simple to integrate for demo purposes. Its portability and small weight files make it practical for hackathon environments where judges need to reproduce results quickly.
+
+## Why Streamlit
+
+Streamlit was selected for the dashboard because it enables rapid, interactive UIs with minimal development overhead. For time-limited submissions, Streamlit reduces delivery risk and keeps the UI code highly readable. The tradeoff is less fine-grained client-side control compared to a dedicated frontend framework, but the benefit is faster iteration and clearer demos.

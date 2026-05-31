@@ -71,3 +71,31 @@ Engineering judgment also overrode AI where the dataset was unclear. Instead of 
 - Dashboard screenshots belong in `docs/screenshots/`
 - Large demo videos should stay out of the repository and remain excluded by `.gitignore`
 - The demo runner prints a compact operational summary that is useful for the recorded walkthrough
+
+## Additional design notes
+
+### Database design / ER diagram
+
+The primary entities are `Event`, `VisitorSession`, `Transaction`, and `Store`. An ER diagram is useful for judges; include a simple diagram or SQLAlchemy model excerpts. Key relationships:
+
+- `Event` -> belongs to `Store` (many-to-one)
+- `VisitorSession` -> associated with `Store` and may aggregate many `Event` rows
+- `Transaction` -> may reference a `VisitorSession`
+
+Indexes are present on `store_id`, `event_type`, and `timestamp` to support time-bound analytics queries.
+
+### CV pipeline specifics
+
+Detection uses YOLOv8 (small) to produce per-frame bounding boxes. A lightweight tracker reconciles detections across frames into tracking IDs. The tracker emits normalized events when rules are met (for example, entrance line crossing → `ENTRY`). The pipeline scripts in `pipeline/` show the minimal code needed to reproduce this flow and are designed to post to the API ingestion endpoints.
+
+### Security and privacy considerations
+
+- Do not commit secrets to the repository. Use `DATABASE_URL` and other secrets as environment variables in deployment.
+- Service-to-service calls (dashboard → API) should use HTTPS in production and restrict access via network controls or authentication for production deployments.
+
+### Performance and scaling
+
+- Current implementation targets clarity over micro-optimizations. For production scale, consider:
+	- Replacing SQLite with Postgres for concurrency and analytical performance.
+	- Adding a caching layer for frequently-read KPIs (Redis).
+	- Moving CV detection to GPU-backed workers and publishing events through a queue for reliability.

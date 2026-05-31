@@ -287,3 +287,34 @@ Useful flags:
 - Dashboard screenshots are saved in `docs/` and `docs/screenshots/`
 - Keep demo video files out of the repository; `.gitignore` already excludes the common locations
 - The demo runner prints a compact summary, including CCTV pipeline status, funnel, heatmap, and anomaly output
+
+## 14. Team
+
+- Project lead: Jahnavi Yelishala — engineer / architect
+- Contact: (add preferred contact email or GitHub handle)
+
+## 15. Running the CV Pipeline (YOLOv8)
+
+1. Place the weights file `yolov8n.pt` in the repository root (already included for convenience in the challenge submission).
+2. Install detection dependencies (see `requirements_cv.txt`):
+
+```powershell
+pip install -r requirements_cv.txt
+```
+
+3. Run an example detector script in `pipeline/` (example):
+
+```powershell
+python pipeline/detect_people.py --weights yolov8n.pt --source path/to/video.mp4 --publish-url http://127.0.0.1:8000/events/ingest
+```
+
+Notes:
+- The `pipeline/` scripts produce normalized events and can push them to the API. For demo runs, `pipeline/mock_event_generator.py` remains the fastest way to show functionality.
+
+## Links to additional documentation
+
+- Architecture notes: `docs/ARCHITECTURE.md`
+- Deployment guide: `docs/DEPLOYMENT.md`
+- API reference: `docs/API_REFERENCE.md`
+- Demo guide: `docs/DEMO_GUIDE.md`
+
