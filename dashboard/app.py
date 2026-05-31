@@ -762,12 +762,13 @@ if metrics_result.ok or funnel_result.ok:
 else:
     st.info("Customer activity is temporarily unavailable right now.")
 
-render_section_heading("Customer Journey Funnel", "How customers progress from entry to purchase.")
+render_section_heading("Customer Journey Funnel", "How customers progress from arrival and re-entry to purchase.")
 if funnel_result.ok and funnel_result.payload:
     stages = funnel_result.payload.get("stages", [])
     funnel_df = normalize_funnel_stages(stages if isinstance(stages, list) else [])
     if not funnel_df.empty:
         st.plotly_chart(build_funnel_chart(funnel_df), use_container_width=True)
+        st.caption("Re-entry events are included in the arrival stage so repeat visits remain part of the same customer journey analytics.")
     else:
         st.info("No funnel data available yet.")
 else:
