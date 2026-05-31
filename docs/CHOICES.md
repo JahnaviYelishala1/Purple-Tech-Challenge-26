@@ -197,3 +197,21 @@ YOLOv8 was chosen as the reference detection approach because the small variant 
 ## Why Streamlit
 
 Streamlit was selected for the dashboard because it enables rapid, interactive UIs with minimal development overhead. For time-limited submissions, Streamlit reduces delivery risk and keeps the UI code highly readable. The tradeoff is less fine-grained client-side control compared to a dedicated frontend framework, but the benefit is faster iteration and clearer demos.
+
+## Camera Role Configuration
+
+The final implementation keeps camera roles in `config/camera_roles.json` instead of hardcoding them in the detectors. That choice makes the code easier to realign if the challenge dataset changes while keeping the detector scripts simple.
+
+## Staff Filtering
+
+The staff-handling approach is intentionally lightweight: camera-role metadata marks staff traffic, and the analytics layer filters those events out. I rejected a separate staff-identity model because it would add complexity without improving the challenge score in a meaningful way.
+
+## Conversion Correlation
+
+Conversion now depends on POS transactions plus billing-zone evidence within a configurable window. I rejected a synthetic purchase-only approach because it would overstate conversion and would not reflect the real dataset.
+
+## Constraints and Limitations
+
+- The implementation still uses simple YOLOv8 tracking heuristics instead of a full re-identification pipeline.
+- The exit-role mapping remains configurable; if the dataset introduces an exit camera later, it can be enabled by editing the config file.
+- Synthetic demo data is still available for smoke tests, but the live analytics path is now driven by the actual camera-role and transaction logic.

@@ -11,6 +11,7 @@ from pathlib import Path
 import cv2
 from ultralytics import YOLO
 
+from camera_roles import camera_ids_for_role, get_camera_role
 from event_publisher import publish_event
 
 
@@ -24,7 +25,11 @@ class EntryStats:
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Detect ENTRY events from person line crossing.")
     parser.add_argument("--video", required=True, help="Path to input video.")
-    parser.add_argument("--camera-id", default="CAM2", help="Camera identifier for emitted events.")
+    parser.add_argument(
+        "--camera-id",
+        default=camera_ids_for_role("ENTRANCE")[0] if camera_ids_for_role("ENTRANCE") else "",
+        help="Camera identifier for emitted events.",
+    )
     parser.add_argument("--store-id", default="STORE_BLR_001", help="Store identifier for emitted events.")
     parser.add_argument("--max-width", type=int, default=1280, help="Max display width.")
     parser.add_argument(
@@ -83,42 +88,21 @@ def draw_overlays(frame, line_x: int, entry_count: int, fps_value: float) -> Non
     )
 
 
-def entry_line_x(frame_width: int, camera_id: str) -> int:
-    """Return a camera-specific line position for entry detection.
+def entry_line_x(frame_width: int, camera_role: str) -> int:
+    """Return a line position for entry detection based on camera role."""
 
-    CAM2 is the entrance camera, so it uses a line further left to match the
-    observed pedestrian flow in the supplied footage.
-    """
-
-    if camera_id.upper() == "CAM2":
-        return max(1, int(frame_width * 0.25))
+    if camera_role == "ENTRANCE":
+        return max(1, int(frame_width * 0.35))
     return max(1, frame_width // 2)
 
 
-def is_entry_crossing(previous_side: str | None, current_side: str, camera_id: str) -> bool:
-    """Determine whether a tracked person has crossed the entrance line.
+def is_entry_crossing(previous_side: str | None, current_side: str, camera_role: str) -> bool:
+    """Determine whether a tracked person has crossed the entrance line."""
 
-    CAM2 footage is mirrored relative to the original prompt, so the observed
-    entry flow moves right-to-left. Other cameras keep the prompt's left-to-right
-    rule.
-    """
-
-    if previous_side is None:
+    if previous_side is None or camera_role != "ENTRANCE":
         return False
 
-    if camera_id.upper() == "CAM2":
-        return previous_side == "right" and current_side == "left"
-
     return previous_side == "left" and current_side == "right"
-    cv2.putText(
-        frame,
-        f"Entries: {entry_count}",
-        (15, 62),
-        cv2.FONT_HERSHEY_SIMPLEX,
-        0.9,
-        (0, 255, 0),
-        2,
-    )
 
 
 def detect_entries(
@@ -137,6 +121,10 @@ def detect_entries(
     if not capture.isOpened():
         raise RuntimeError(f"Failed to open video: {video_path}")
 
+    camera_role = get_camera_role(camera_id)
+    if camera_role != "ENTRANCE":
+        print(f"Warning: camera {camera_id} is mapped to {camera_role}; ENTRY events will not be emitted.")
+
     stats = EntryStats()
     last_side_by_track: dict[int, str] = {}
     triggered_track_ids: set[int] = set()
@@ -154,7 +142,7 @@ def detect_entries(
 
             stats.frames_processed += 1
             frame_width = frame.shape[1]
-            line_x = entry_line_x(frame_width, camera_id)
+            line_x = entry_line_x(frame_width, camera_role)
 
             result = model.track(frame, persist=True, classes=[0], verbose=False)[0]
             boxes = result.boxes
@@ -191,7 +179,7 @@ def detect_entries(
                         continue
 
                     previous_side = last_side_by_track.get(track_id)
-                    if is_entry_crossing(previous_side, side, camera_id) and track_id not in triggered_track_ids:
+                    if is_entry_crossing(previous_side, side, camera_role) and track_id not in triggered_track_ids:
                         event = make_entry_event(
                             track_id=track_id,
                             camera_id=camera_id,

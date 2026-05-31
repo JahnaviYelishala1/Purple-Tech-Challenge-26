@@ -17,6 +17,7 @@ if str(PIPELINE_DIR) not in sys.path:
 import cv2
 from ultralytics import YOLO
 
+from camera_roles import camera_ids_for_role, get_camera_role
 from event_publisher import publish_event
 
 
@@ -31,7 +32,11 @@ class BillingStats:
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Detect BILLING_QUEUE_JOIN events from person tracking.")
     parser.add_argument("--video", required=True, help="Path to input video.")
-    parser.add_argument("--camera-id", default="CAM5", help="Camera identifier for emitted events.")
+    parser.add_argument(
+        "--camera-id",
+        default=camera_ids_for_role("BILLING")[0] if camera_ids_for_role("BILLING") else "",
+        help="Camera identifier for emitted events.",
+    )
     parser.add_argument("--store-id", default="STORE_BLR_001", help="Store identifier for emitted events.")
     parser.add_argument("--max-width", type=int, default=1280, help="Maximum display width.")
     parser.add_argument(
@@ -133,6 +138,10 @@ def detect_billing_queue(
     if not capture.isOpened():
         raise RuntimeError(f"Failed to open video: {video_path}")
 
+    camera_role = get_camera_role(camera_id)
+    if camera_role != "BILLING":
+        print(f"Warning: camera {camera_id} is mapped to {camera_role}; BILLING events will not be emitted.")
+
     stats = BillingStats()
     last_inside_by_track: dict[int, bool] = {}
     triggered_track_ids: set[int] = set()
@@ -188,7 +197,7 @@ def detect_billing_queue(
                         continue
 
                     previous_inside = last_inside_by_track.get(track_id, False)
-                    if inside and not previous_inside and track_id not in triggered_track_ids:
+                    if camera_role == "BILLING" and inside and not previous_inside and track_id not in triggered_track_ids:
                         event = make_billing_event(
                             track_id=track_id,
                             camera_id=camera_id,

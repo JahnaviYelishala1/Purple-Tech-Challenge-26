@@ -27,8 +27,11 @@ class SessionService:
         )
         return db.scalars(statement).first()
 
-    def handle_entry_event(self, event: Event, db: Session) -> VisitorSession:
+    def handle_entry_event(self, event: Event, db: Session) -> VisitorSession | None:
         """Create an active session for an entry event when needed."""
+
+        if event.is_staff:
+            return None
 
         active_session = self.get_active_session(event.visitor_id, event.store_id, db)
         if active_session is not None:
@@ -47,6 +50,9 @@ class SessionService:
 
     def handle_exit_event(self, event: Event, db: Session) -> VisitorSession | None:
         """Close the active session for an exit event, if one exists."""
+
+        if event.is_staff:
+            return None
 
         active_session = self.get_active_session(event.visitor_id, event.store_id, db)
         if active_session is None:

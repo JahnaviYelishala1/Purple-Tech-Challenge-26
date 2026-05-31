@@ -9,13 +9,14 @@ from typing import Any
 
 import requests
 
+from camera_roles import camera_ids_for_role, load_camera_roles
+
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 PYTHON_EXE = Path(sys.executable)
 ENTRY_DETECTOR = PROJECT_ROOT / "pipeline" / "entry_detector.py"
 BILLING_DETECTOR = PROJECT_ROOT / "pipeline" / "billing_detector.py"
-CAM2_VIDEO = PROJECT_ROOT / "CCTV Footage" / "CAM 2.mp4"
-CAM5_VIDEO = PROJECT_ROOT / "CCTV Footage" / "CAM 5.mp4"
+VIDEO_DIR = PROJECT_ROOT / "CCTV Footage"
 API_BASE_URL = "http://localhost:8000"
 STORE_ID = "STORE_BLR_001"
 
@@ -51,6 +52,15 @@ def run_detector(name: str, script_path: Path, video_path: Path, camera_id: str)
     )
 
 
+def find_video_for_camera(camera_id: str) -> Path | None:
+    normalized_camera_id = camera_id.upper().replace(" ", "").replace("_", "")
+    for video_path in sorted(VIDEO_DIR.glob("*.mp4")):
+        normalized_video_name = video_path.stem.upper().replace(" ", "").replace("_", "")
+        if normalized_video_name == normalized_camera_id:
+            return video_path
+    return None
+
+
 def count_generated_events(output: str, marker: str) -> int:
     return sum(1 for line in output.splitlines() if marker in line)
 
@@ -80,15 +90,33 @@ def print_summary_line(label: str, value: Any) -> None:
 
 
 def main() -> int:
-    if not CAM2_VIDEO.exists():
-        print(f"Missing video: {CAM2_VIDEO}")
+    roles = load_camera_roles()
+
+    entrance_cameras = camera_ids_for_role("ENTRANCE")
+    billing_cameras = camera_ids_for_role("BILLING")
+    exit_cameras = camera_ids_for_role("EXIT")
+
+    if not entrance_cameras:
+        print("No ENTRANCE camera configured in config/camera_roles.json")
         return 1
-    if not CAM5_VIDEO.exists():
-        print(f"Missing video: {CAM5_VIDEO}")
+    if not billing_cameras:
+        print("No BILLING camera configured in config/camera_roles.json")
         return 1
 
-    entry_run = run_detector("entry", ENTRY_DETECTOR, CAM2_VIDEO, "CAM2")
-    billing_run = run_detector("billing", BILLING_DETECTOR, CAM5_VIDEO, "CAM5")
+    entry_camera = entrance_cameras[0]
+    billing_camera = billing_cameras[0]
+
+    entry_video = find_video_for_camera(entry_camera)
+    billing_video = find_video_for_camera(billing_camera)
+    if entry_video is None:
+        print(f"Missing video for camera {entry_camera} in {VIDEO_DIR}")
+        return 1
+    if billing_video is None:
+        print(f"Missing video for camera {billing_camera} in {VIDEO_DIR}")
+        return 1
+
+    entry_run = run_detector("entry", ENTRY_DETECTOR, entry_video, entry_camera)
+    billing_run = run_detector("billing", BILLING_DETECTOR, billing_video, billing_camera)
 
     entries_detected = count_generated_events(entry_run.stdout, '"event_type": "ENTRY"')
     billing_events_detected = count_generated_events(billing_run.stdout, '"event_type": "BILLING_QUEUE_JOIN"')
@@ -103,6 +131,12 @@ def main() -> int:
     print("STORE INTELLIGENCE DEMO SUMMARY")
     print("================================")
     print()
+
+    print(f"Configured Camera Roles:\n{json.dumps(roles, indent=2)}\n")
+    if exit_cameras:
+        print(f"Exit cameras configured: {', '.join(exit_cameras)}\n")
+    else:
+        print("Exit cameras configured: none\n")
 
     print(f"Entries Detected:\n{entries_detected}\n")
     print(f"Billing Queue Events:\n{billing_events_detected}\n")

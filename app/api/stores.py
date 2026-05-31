@@ -16,8 +16,10 @@ def list_analytics_stores(db: Session = Depends(get_db)) -> dict[str, list[str]]
 
     activity_by_store: dict[str, int] = {}
     statements = (
-        select(Event.store_id, func.count()).group_by(Event.store_id),
-        select(VisitorSession.store_id, func.count()).group_by(VisitorSession.store_id),
+        select(Event.store_id, func.count()).where(Event.is_staff.is_(False)).group_by(Event.store_id),
+        select(VisitorSession.store_id, func.count())
+        .where(VisitorSession.is_staff.is_(False))
+        .group_by(VisitorSession.store_id),
         select(Transaction.store_id, func.count()).group_by(Transaction.store_id),
     )
 

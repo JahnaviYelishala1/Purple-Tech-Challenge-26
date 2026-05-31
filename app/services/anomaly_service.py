@@ -30,6 +30,7 @@ class AnomalyService:
         historical_zones_statement = select(func.count()).where(
             EventModel.store_id == store_id,
             EventModel.zone_id.is_not(None),
+            EventModel.is_staff.is_(False),
         )
         historical_zone_count = int(db.execute(historical_zones_statement).scalar_one() or 0)
 
@@ -37,6 +38,7 @@ class AnomalyService:
             EventModel.store_id == store_id,
             EventModel.event_type == "ZONE_ENTER",
             EventModel.timestamp >= recent_window_start,
+            EventModel.is_staff.is_(False),
         )
         recent_zone_enter_count = int(db.execute(recent_zone_enter_statement).scalar_one() or 0)
 
@@ -54,6 +56,7 @@ class AnomalyService:
             EventModel.store_id == store_id,
             EventModel.event_type == "BILLING_QUEUE_JOIN",
             EventModel.timestamp >= queue_window_start,
+            EventModel.is_staff.is_(False),
         )
         queue_spike_count = int(db.execute(queue_spike_statement).scalar_one() or 0)
 
@@ -70,7 +73,10 @@ class AnomalyService:
         metrics_statement = select(
             func.count(distinct(VisitorSession.visitor_id)).label("unique_visitors"),
             func.count().filter(VisitorSession.converted.is_(True)).label("converted_visitors"),
-        ).where(VisitorSession.store_id == store_id)
+        ).where(
+            VisitorSession.store_id == store_id,
+            VisitorSession.is_staff.is_(False),
+        )
         unique_visitors, converted_visitors = db.execute(metrics_statement).one()
         unique_visitors = int(unique_visitors or 0)
         converted_visitors = int(converted_visitors or 0)

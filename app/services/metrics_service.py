@@ -16,7 +16,10 @@ class MetricsService:
             func.count(distinct(VisitorSession.visitor_id)),
             func.count().filter(VisitorSession.session_end.is_(None)),
             func.count().filter(VisitorSession.converted.is_(True)),
-        ).where(VisitorSession.store_id == store_id)
+        ).where(
+            VisitorSession.store_id == store_id,
+            VisitorSession.is_staff.is_(False),
+        )
 
         unique_visitors, active_visitors, converted_visitors = db.execute(counts_statement).one()
 
@@ -25,6 +28,7 @@ class MetricsService:
             VisitorSession.session_end,
         ).where(
             VisitorSession.store_id == store_id,
+            VisitorSession.is_staff.is_(False),
             VisitorSession.session_end.is_not(None),
         )
         closed_sessions = db.execute(duration_statement).all()

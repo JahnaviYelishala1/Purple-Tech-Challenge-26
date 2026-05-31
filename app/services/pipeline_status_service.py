@@ -11,28 +11,37 @@ from sqlalchemy.orm import Session
 from app.models.event import Event as EventModel
 from app.models.session import VisitorSession
 
+from pipeline.camera_roles import camera_ids_for_role, load_camera_roles, role_label
+
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 CAMERA_MAPPING_PATH = PROJECT_ROOT / "camera_mapping.json"
-TARGET_CAMERA_IDS = ("CAM2", "CAM5")
+TARGET_ROLES = ("ENTRANCE", "BILLING", "ZONE", "EXIT")
 
 
 class PipelineStatusService:
     """Build a small CCTV pipeline status view for the dashboard."""
 
     def _load_camera_labels(self) -> dict[str, str]:
+        labels: dict[str, str] = {}
+        load_camera_roles()
+        for role in TARGET_ROLES:
+            for camera_id in camera_ids_for_role(role):
+                labels[camera_id] = f"{camera_id} ({role_label(role)})"
+
+        if labels:
+            return labels
+
         if not CAMERA_MAPPING_PATH.exists():
-            return {camera_id: camera_id for camera_id in TARGET_CAMERA_IDS}
+            return {}
 
         try:
             raw_mapping = json.loads(CAMERA_MAPPING_PATH.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError):
-            return {camera_id: camera_id for camera_id in TARGET_CAMERA_IDS}
+            return {}
 
-        labels: dict[str, str] = {}
-        for camera_id in TARGET_CAMERA_IDS:
-            raw_label = raw_mapping.get(camera_id, camera_id)
-            labels[camera_id] = str(raw_label).replace("_", " ").title()
+        for camera_id, raw_label in raw_mapping.items():
+            labels[str(camera_id)] = str(raw_label).replace("_", " ").title()
         return labels
 
     def _load_latest_event(self, db: Session, store_id: str, *, event_type: str | None = None, camera_id: str | None = None) -> EventModel | None:
@@ -73,7 +82,7 @@ class PipelineStatusService:
 
         cameras = [
             self._camera_status(db, store_id, camera_id=camera_id, label=labels.get(camera_id, camera_id))
-            for camera_id in TARGET_CAMERA_IDS
+            for camera_id in labels.keys()
         ]
 
         latest_entry = self._load_latest_event(db, store_id, event_type="ENTRY")
@@ -86,6 +95,7 @@ class PipelineStatusService:
         ).where(
             EventModel.store_id == store_id,
             EventModel.timestamp >= day_start,
+            EventModel.is_staff.is_(False),
         )
         total_events_today, entries_today, billing_today = db.execute(activity_statement).one()
 
@@ -93,6 +103,7 @@ class PipelineStatusService:
             VisitorSession.store_id == store_id,
             VisitorSession.converted.is_(True),
             VisitorSession.session_start >= day_start,
+            VisitorSession.is_staff.is_(False),
         )
         purchases_today = int(db.execute(converted_sessions_statement).scalar_one() or 0)
 

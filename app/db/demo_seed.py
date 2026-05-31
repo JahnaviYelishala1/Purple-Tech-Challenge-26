@@ -7,7 +7,16 @@ from app.models.event import Event
 from app.models.session import VisitorSession
 from app.models.transaction import Transaction
 
+from pipeline.camera_roles import camera_ids_for_role
+
 DEMO_STORE_ID = "STORE_BLR_001"
+
+
+def _camera_id_for_role(role: str) -> str:
+    camera_ids = camera_ids_for_role(role)
+    if not camera_ids:
+        raise RuntimeError(f"No camera configured for role {role}")
+    return camera_ids[0]
 
 
 def seed_demo_data_if_empty(db: Session) -> bool:
@@ -52,7 +61,7 @@ def seed_demo_data_if_empty(db: Session) -> bool:
             Event(
                 event_id=f"demo-entry-{index}",
                 store_id=DEMO_STORE_ID,
-                camera_id="CAM2",
+                camera_id=_camera_id_for_role("ENTRANCE"),
                 visitor_id=visitor_id,
                 event_type="ENTRY",
                 timestamp=entry_time,
@@ -69,7 +78,7 @@ def seed_demo_data_if_empty(db: Session) -> bool:
                     Event(
                         event_id=f"demo-zone-enter-{index}",
                         store_id=DEMO_STORE_ID,
-                        camera_id="CAM5",
+                        camera_id=_camera_id_for_role("ZONE"),
                         visitor_id=visitor_id,
                         event_type="ZONE_ENTER",
                         timestamp=entry_time + timedelta(minutes=3),
@@ -81,7 +90,7 @@ def seed_demo_data_if_empty(db: Session) -> bool:
                     Event(
                         event_id=f"demo-zone-dwell-{index}",
                         store_id=DEMO_STORE_ID,
-                        camera_id="CAM5",
+                        camera_id=_camera_id_for_role("ZONE"),
                         visitor_id=visitor_id,
                         event_type="ZONE_DWELL",
                         timestamp=entry_time + timedelta(minutes=6),
@@ -98,7 +107,7 @@ def seed_demo_data_if_empty(db: Session) -> bool:
                 Event(
                     event_id=f"demo-billing-{index}",
                     store_id=DEMO_STORE_ID,
-                    camera_id="CAM5",
+                    camera_id=_camera_id_for_role("BILLING"),
                     visitor_id=visitor_id,
                     event_type="BILLING_QUEUE_JOIN",
                     timestamp=entry_time + timedelta(minutes=8),

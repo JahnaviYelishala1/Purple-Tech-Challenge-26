@@ -215,7 +215,7 @@ Dashboard capabilities:
 - Conversion Rate
 - Active Visitors
 - Funnel Metrics
-- CCTV Pipeline Status
+- Customer Activity Overview
 - Heatmap Metrics
 - Active Anomalies
 - Auto-refresh every 10 seconds
@@ -242,11 +242,9 @@ The funnel view shows how customers move from entry to zone engagement, billing 
 
 ![Customer Journey Funnel](docs/Screenshot%202026-05-31%20003940.png)
 
-#### 3. CCTV Pipeline Status
+#### 3. Customer Activity Overview
 
-The CCTV pipeline status panel connects the dashboard back to the camera feeds. It is used as proof that entrance, billing, and zone events are produced from camera-specific processing before they become store-level analytics.
-
-![CCTV Pipeline Status](docs/screenshots/cctv-pipeline-status.png)
+The customer activity section summarizes entry traffic, billing interactions, purchases, and total daily events. It gives store teams a quick operational read without exposing backend implementation details.
 
 #### 4. Zone Performance and Operational Alerts
 
@@ -254,9 +252,9 @@ The zone performance section is used for heatmap and dwell-time analytics. The o
 
 ![Zone Performance and Operational Alerts](docs/zone-performance%20and%20operational%20alerts.png)
 
-#### 5. Business Value and Outcomes
+#### 5. Business Summary
 
-The closing dashboard section explains the retail value of the solution and summarizes the impact areas: journey insights, zone performance, queue monitoring, and real-time decision support.
+The closing dashboard section keeps the presentation business-facing and summarizes the impact areas: journey insights, zone performance, queue monitoring, and real-time decision support.
 
 ![Business Value and Outcomes](docs/Screenshot%202026-05-31%20004045.png)
 
@@ -310,6 +308,28 @@ python pipeline/detect_people.py --weights yolov8n.pt --source path/to/video.mp4
 
 Notes:
 - The `pipeline/` scripts produce normalized events and can push them to the API. For demo runs, `pipeline/mock_event_generator.py` remains the fastest way to show functionality.
+
+## 16. Dataset Alignment
+
+The current implementation is aligned to the challenge camera-role mapping stored in [config/camera_roles.json](config/camera_roles.json).
+
+- `CAM1` - `ZONE`
+- `CAM2` - `ZONE`
+- `CAM3` - `ENTRANCE`
+- `CAM4` - `STAFF`
+- `CAM5` - `BILLING`
+
+Operational assumptions used by the code:
+
+- Staff tracks are filtered by camera role before they reach visitor session logic or analytics.
+- Conversion is measured from a billing-zone event plus a POS transaction within the configurable correlation window (`POS_CONVERSION_WINDOW_MINUTES`).
+- The live dashboard focuses on KPIs, funnel, zone performance, and alerts; backend diagnostics are intentionally kept out of the business view.
+- The current exit-role mapping is configurable. If a dedicated exit camera is present in a later dataset revision, add it to `config/camera_roles.json` and the detectors will honor it without code changes.
+
+Known limitations:
+
+- If the dataset revises the camera roles, only `config/camera_roles.json` should need updating.
+- The current CV scripts still depend on YOLOv8 detections and simple tracking heuristics; they are intentionally lightweight for the hackathon setting.
 
 ## Links to additional documentation
 

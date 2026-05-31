@@ -11,6 +11,7 @@ from pathlib import Path
 import cv2
 from ultralytics import YOLO
 
+from camera_roles import camera_ids_for_role, get_camera_role
 from event_publisher import publish_event
 
 
@@ -24,7 +25,11 @@ class ExitStats:
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Detect EXIT events from person line crossing.")
     parser.add_argument("--video", required=True, help="Path to input video.")
-    parser.add_argument("--camera-id", default="CAM4", help="Camera identifier for emitted events.")
+    parser.add_argument(
+        "--camera-id",
+        default=camera_ids_for_role("EXIT")[0] if camera_ids_for_role("EXIT") else "",
+        help="Camera identifier for emitted events.",
+    )
     parser.add_argument("--store-id", default="STORE_BLR_001", help="Store identifier for emitted events.")
     parser.add_argument("--max-width", type=int, default=1280, help="Max display width.")
     parser.add_argument(
@@ -70,14 +75,10 @@ def make_exit_event(track_id: int, camera_id: str, store_id: str) -> dict[str, o
     }
 
 
-def exit_line_x(frame_width: int, camera_id: str) -> int:
-    """Return a camera-specific exit line location.
+def exit_line_x(frame_width: int, camera_role: str) -> int:
+    """Return a line position for exit detection based on camera role."""
 
-    CAM4 is treated as the exit camera, so the line is placed slightly right of
-    center to match the observed flow better in the supplied footage.
-    """
-
-    if camera_id.upper() == "CAM4":
+    if camera_role == "EXIT":
         return max(1, int(frame_width * 0.60))
     return max(1, frame_width // 2)
 
@@ -125,6 +126,10 @@ def detect_exits(
     if not capture.isOpened():
         raise RuntimeError(f"Failed to open video: {video_path}")
 
+    camera_role = get_camera_role(camera_id)
+    if camera_role != "EXIT":
+        print(f"Warning: camera {camera_id} is mapped to {camera_role}; EXIT events will not be emitted.")
+
     stats = ExitStats()
     last_side_by_track: dict[int, str] = {}
     triggered_track_ids: set[int] = set()
@@ -142,7 +147,7 @@ def detect_exits(
 
             stats.frames_processed += 1
             frame_width = frame.shape[1]
-            line_x = exit_line_x(frame_width, camera_id)
+            line_x = exit_line_x(frame_width, camera_role)
 
             result = model.track(frame, persist=True, classes=[0], verbose=False)[0]
             boxes = result.boxes
@@ -179,7 +184,7 @@ def detect_exits(
                         continue
 
                     previous_side = last_side_by_track.get(track_id)
-                    if is_exit_crossing(previous_side, side) and track_id not in triggered_track_ids:
+                    if camera_role == "EXIT" and is_exit_crossing(previous_side, side) and track_id not in triggered_track_ids:
                         event = make_exit_event(track_id=track_id, camera_id=camera_id, store_id=store_id)
                         triggered_track_ids.add(track_id)
                         stats.exits_detected += 1

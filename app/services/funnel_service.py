@@ -17,6 +17,7 @@ class FunnelService:
                 select(func.count(distinct(EventModel.visitor_id))).where(
                     EventModel.store_id == store_id,
                     EventModel.event_type == "ENTRY",
+                    EventModel.is_staff.is_(False),
                 ),
             ),
             (
@@ -24,6 +25,7 @@ class FunnelService:
                 select(func.count(distinct(EventModel.visitor_id))).where(
                     EventModel.store_id == store_id,
                     EventModel.event_type.in_(["ZONE_ENTER", "ZONE_DWELL"]),
+                    EventModel.is_staff.is_(False),
                 ),
             ),
             (
@@ -31,12 +33,14 @@ class FunnelService:
                 select(func.count(distinct(EventModel.visitor_id))).where(
                     EventModel.store_id == store_id,
                     EventModel.event_type == "BILLING_QUEUE_JOIN",
+                    EventModel.is_staff.is_(False),
                 ),
             ),
             (
                 "PURCHASE",
                 select(func.count()).where(
                     VisitorSession.store_id == store_id,
+                    VisitorSession.is_staff.is_(False),
                     VisitorSession.converted.is_(True),
                 ),
             ),

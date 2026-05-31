@@ -688,32 +688,19 @@ def render_centered_message(message: str) -> None:
     )
 
 
-health_result = load_health()
 render_top_nav()
-
-if not health_result.ok:
-    msg = "Backend Offline"
-    if health_result.error:
-        msg = f"{msg} — {health_result.error}"
-    render_centered_message(msg)
-    st.stop()
 
 store_id = load_store_id()
 st.caption(f"Showing store: {store_id}")
 
-with st.spinner("Loading real-time store intelligence..."):
+with st.spinner("Loading store insights..."):
     metrics_result = fetch_json(f"/stores/{store_id}/metrics")
     funnel_result = fetch_json(f"/stores/{store_id}/funnel")
-    activity_result = fetch_json(f"/stores/{store_id}/pipeline-status")
     heatmap_result = fetch_json(f"/stores/{store_id}/heatmap")
     anomalies_result = fetch_json(f"/stores/{store_id}/anomalies")
 
-if not metrics_result.ok and not funnel_result.ok and not activity_result.ok and not heatmap_result.ok and not anomalies_result.ok:
-    errors = [r.error for r in (metrics_result, funnel_result, activity_result, heatmap_result, anomalies_result) if r and r.error]
-    msg = "Backend Offline"
-    if errors:
-        msg = f"{msg} — {errors[0]}"
-    render_centered_message(msg)
+if not metrics_result.ok and not funnel_result.ok and not heatmap_result.ok and not anomalies_result.ok:
+    render_centered_message("Live store insights are temporarily unavailable.")
     st.stop()
 
 metrics: dict[str, Any] = metrics_result.payload if metrics_result.ok and metrics_result.payload else {}
@@ -754,22 +741,14 @@ if metrics_result.ok and metrics_result.payload:
         with col:
             render_kpi_card(*card)
 else:
-    st.error(f"Metrics unavailable: {metrics_result.error or 'Unknown error'}")
+    st.info("Customer metrics are temporarily unavailable right now.")
 
 render_section_heading("Customer Activity Overview", "Today's customer flow and store activity at a glance.")
-if activity_result.ok and activity_result.payload:
-    activity = activity_result.payload.get("activity_summary", {})
-else:
-    activity = {}
-
 if metrics_result.ok or funnel_result.ok:
-    store_entries = stage_counts.get("ENTRY", {}).get("count", activity.get("entries_today", 0))
-    billing_interactions = stage_counts.get("BILLING_QUEUE", {}).get("count", activity.get("billing_interactions_today", 0))
-    purchases = metrics.get("converted_visitors", activity.get("purchases_today", 0))
-    total_events_today = activity.get(
-        "total_events_today",
-        int(store_entries or 0) + int(billing_interactions or 0) + int(purchases or 0),
-    )
+    store_entries = stage_counts.get("ENTRY", {}).get("count", 0)
+    billing_interactions = stage_counts.get("BILLING_QUEUE", {}).get("count", 0)
+    purchases = metrics.get("converted_visitors", stage_counts.get("PURCHASE", {}).get("count", 0))
+    total_events_today = int(store_entries or 0) + int(billing_interactions or 0) + int(purchases or 0)
     activity_cards = [
         ("Store Entries", format_int(store_entries), "🚪", "#2563eb", "#eff6ff", "Customers entering today"),
         ("Billing Interactions", format_int(billing_interactions), "💳", "#0f766e", "#f0fdfa", "Queue and checkout activity"),
@@ -781,7 +760,7 @@ if metrics_result.ok or funnel_result.ok:
         with col:
             render_kpi_card(*card)
 else:
-    st.error(f"Customer activity unavailable: {activity_result.error or 'Unknown error'}")
+    st.info("Customer activity is temporarily unavailable right now.")
 
 render_section_heading("Customer Journey Funnel", "How customers progress from entry to purchase.")
 if funnel_result.ok and funnel_result.payload:
@@ -792,7 +771,7 @@ if funnel_result.ok and funnel_result.payload:
     else:
         st.info("No funnel data available yet.")
 else:
-    st.error(f"Funnel unavailable: {funnel_result.error or 'Unknown error'}")
+    st.info("Funnel data is temporarily unavailable right now.")
 
 render_section_heading("Zone Performance", "Traffic concentration and dwell behavior across the store.")
 if heatmap_result.ok and heatmap_result.payload:
@@ -830,7 +809,7 @@ if heatmap_result.ok and heatmap_result.payload:
     else:
         st.info("No heatmap data available yet.")
 else:
-    st.error(f"Heatmap unavailable: {heatmap_result.error or 'Unknown error'}")
+    st.info("Zone performance data is temporarily unavailable right now.")
 
 render_section_heading("Operational Alerts", "Business-focused alerts for retail managers.")
 if anomalies_result.ok and anomalies_result.payload:
@@ -844,7 +823,7 @@ if anomalies_result.ok and anomalies_result.payload:
     else:
         st.markdown('<div class="empty-state">No active anomalies detected.</div>', unsafe_allow_html=True)
 else:
-    st.error(f"Anomalies unavailable: {anomalies_result.error or 'Unknown error'}")
+    st.info("Operational alerts are temporarily unavailable right now.")
 
 st.markdown(
     """
@@ -875,38 +854,6 @@ st.markdown(
                 <div class="business-card__icon">📈</div>
                 <div class="business-card__title">Real-Time Decision Support</div>
                 <div class="business-card__text">Provide store managers with actionable insights that improve customer experience and business outcomes.</div>
-            </div>
-        </div>
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
-
-st.markdown(
-    """
-    <div class="section-block">
-        <div class="section-block__header">
-            <div>
-                <div class="section-block__title">Key Outcomes</div>
-                <div class="section-block__subtitle">A quick summary of what the system achieved.</div>
-            </div>
-        </div>
-        <div class="outcomes-grid">
-            <div class="outcome-card">
-                <div class="outcome-card__label">👥 Visitors Tracked</div>
-                <div class="outcome-card__value">3</div>
-            </div>
-            <div class="outcome-card">
-                <div class="outcome-card__label">🛒 Purchases</div>
-                <div class="outcome-card__value">2</div>
-            </div>
-            <div class="outcome-card">
-                <div class="outcome-card__label">📈 Conversion Rate</div>
-                <div class="outcome-card__value">66.7%</div>
-            </div>
-            <div class="outcome-card">
-                <div class="outcome-card__label">⚠ Alerts Generated</div>
-                <div class="outcome-card__value">1</div>
             </div>
         </div>
     </div>

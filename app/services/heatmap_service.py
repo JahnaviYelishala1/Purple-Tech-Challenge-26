@@ -24,6 +24,7 @@ class HeatmapService:
             EventModel.store_id == store_id,
             EventModel.zone_id.is_not(None),
             EventModel.event_type.in_(["ZONE_ENTER", "ZONE_DWELL"]),
+            EventModel.is_staff.is_(False),
         ).group_by(func.upper(EventModel.zone_id))
 
         zone_rows = db.execute(zone_statement).all()
@@ -46,7 +47,10 @@ class HeatmapService:
             for metric in zone_metrics:
                 metric.normalized_score = (metric.visit_count / max_visit_count) * 100
 
-        session_count_statement = select(func.count()).where(VisitorSession.store_id == store_id)
+        session_count_statement = select(func.count()).where(
+            VisitorSession.store_id == store_id,
+            VisitorSession.is_staff.is_(False),
+        )
         total_sessions = int(db.execute(session_count_statement).scalar_one() or 0)
         data_confidence = "LOW" if total_sessions < 20 else "HIGH"
 

@@ -99,3 +99,40 @@ Detection uses YOLOv8 (small) to produce per-frame bounding boxes. A lightweight
 	- Replacing SQLite with Postgres for concurrency and analytical performance.
 	- Adding a caching layer for frequently-read KPIs (Redis).
 	- Moving CV detection to GPU-backed workers and publishing events through a queue for reliability.
+
+## 12. Dataset Alignment and Assumptions
+
+The current camera-role mapping is externalized in [config/camera_roles.json](../config/camera_roles.json):
+
+- `CAM1` - `ZONE`
+- `CAM2` - `ZONE`
+- `CAM3` - `ENTRANCE`
+- `CAM4` - `STAFF`
+- `CAM5` - `BILLING`
+
+The code intentionally avoids hardcoding these roles in detector logic. If the dataset changes, this file is the only place that should need an update.
+
+## 13. Staff Filtering Strategy
+
+Staff exclusion is lightweight and conservative:
+
+- Any event emitted from a camera mapped to `STAFF` is marked as staff traffic.
+- Staff events are stored for traceability but excluded from session creation and from customer analytics queries.
+- Funnel, heatmap, anomaly, metrics, and store-discovery queries filter `is_staff = false` so staff traffic does not inflate customer metrics.
+
+This approach is simple enough for the hackathon and matches the scoring requirement without introducing a separate ML classifier.
+
+## 14. POS Conversion Logic
+
+Conversion is now correlated with the transaction dataset instead of synthetic purchase events.
+
+- The backend accepts transaction batches through `POST /transactions/ingest`.
+- A visitor session is marked converted only when a POS transaction lands within the configurable correlation window after a `BILLING_QUEUE_JOIN` event for the same visitor.
+- The default window is controlled by `POS_CONVERSION_WINDOW_MINUTES`.
+- If there is no billing activity in the window, the transaction is still stored but the session is not counted as converted.
+
+## 15. Limitations
+
+- The CV pipeline uses YOLOv8 plus simple tracking heuristics; it is intentionally lightweight rather than production-grade.
+- If a future dataset revision introduces a dedicated exit camera, that role can be added to the camera-role config without code changes.
+- The dashboard is deliberately business-facing and omits backend diagnostics.

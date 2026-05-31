@@ -19,7 +19,7 @@ from app.core.logging import configure_logging
 from app.db.base import Base
 from app.db.demo_seed import seed_demo_data_if_empty
 from app.db.session import SessionLocal, engine
-import app.models  # noqa: F401
+import app.models  
 
 settings = get_settings()
 configure_logging(settings.log_level)
