@@ -60,7 +60,7 @@ def post_json(base_url: str, path: str, payload: dict) -> dict:
 
 
 def build_journey(store_id: str, visitor_id: str, start: datetime) -> list[dict]:
-    aisle = random.choice(["aisle-a", "aisle-b", "aisle-c"])
+    zone = random.choice(["zone_a", "zone_b"])
     dwell_ms = random.randint(20_000, 180_000)
     queue_depth = random.randint(1, 8)
 
@@ -72,7 +72,7 @@ def build_journey(store_id: str, visitor_id: str, start: datetime) -> list[dict]
         start + timedelta(seconds=random.randint(330, 520)),
     ]
 
-    zones = ["entrance", aisle, aisle, "billing", "exit"]
+    zones = ["entrance", zone, zone, "billing_area", "exit"]
 
     events: list[dict] = []
     for idx, event_type in enumerate(EVENT_SEQUENCE, start=1):

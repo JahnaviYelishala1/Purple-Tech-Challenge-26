@@ -72,7 +72,7 @@ def seed_demo_data_if_empty(db: Session) -> bool:
         )
 
         if index <= 6:
-            zone_id = "electronics" if index % 2 else "grocery"
+            zone_id = "zone_a" if index % 2 else "zone_b"
             events.extend(
                 [
                     Event(
@@ -115,6 +115,7 @@ def seed_demo_data_if_empty(db: Session) -> bool:
                     is_staff=False,
                     confidence=0.95,
                     queue_depth=3 + index,
+                    zone_id="billing_area",
                 )
             )
 

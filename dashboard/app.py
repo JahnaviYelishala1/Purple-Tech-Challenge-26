@@ -37,7 +37,7 @@ FUNNEL_ORDER = ["ENTRY", "ZONE_VISIT", "BILLING_QUEUE", "PURCHASE"]
 FUNNEL_LABELS = {
     "ENTRY": "Store Entry",
     "ZONE_VISIT": "Zone Engagement",
-    "BILLING_QUEUE": "Billing Interest",
+    "BILLING_QUEUE": "Billing Queue",
     "PURCHASE": "Completed Purchase",
 }
 
@@ -585,6 +585,11 @@ def normalize_funnel_stages(raw_stages: list[dict[str, Any]]) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
+def format_zone_label(value: Any) -> str:
+    text = str(value).strip().replace("_", " ")
+    return text.title() if text else "Unknown"
+
+
 def render_section_heading(title: str, caption: str) -> None:
     st.markdown(
         f"""
@@ -789,6 +794,7 @@ if heatmap_result.ok and heatmap_result.payload:
                 "avg_dwell_seconds": "Average Dwell Time",
             }
         )
+        heatmap_df["Zone"] = heatmap_df["Zone"].apply(format_zone_label)
         heatmap_df["Visit Count"] = pd.to_numeric(heatmap_df["Visit Count"], errors="coerce").fillna(0).astype(int)
         heatmap_df["Average Dwell Time"] = pd.to_numeric(
             heatmap_df["Average Dwell Time"], errors="coerce"
