@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from datetime import datetime, timezone
 from html import escape
 import os
@@ -58,15 +57,6 @@ SEVERITY_STYLES = {
     "WARN": {"accent": "#f97316", "bg": "#fff7ed", "text": "#9a3412"},
     "CRITICAL": {"accent": "#dc2626", "bg": "#fef2f2", "text": "#991b1b"},
 }
-
-
-@dataclass(frozen=True)
-class ApiResponse:
-    ok: bool
-    payload: dict[str, Any] | None
-    error: str | None = None
-
-
 st.set_page_config(
     page_title="Store Intelligence Dashboard",
     page_icon="📊",
@@ -426,18 +416,18 @@ st.markdown(
 
 
 @st.cache_data(ttl=10)
-def fetch_json(path: str) -> ApiResponse:
+def fetch_json(path: str) -> dict[str, Any]:
     try:
         response = requests.get(f"{API_BASE_URL}{path}", timeout=5)
         response.raise_for_status()
         payload = response.json()
         if isinstance(payload, dict):
-            return ApiResponse(ok=True, payload=payload)
-        return ApiResponse(ok=True, payload={"data": payload})
+            return {"ok": True, "payload": payload, "error": None}
+        return {"ok": True, "payload": {"data": payload}, "error": None}
     except requests.RequestException as exc:
-        return ApiResponse(ok=False, payload=None, error=str(exc))
+        return {"ok": False, "payload": None, "error": str(exc)}
     except ValueError as exc:
-        return ApiResponse(ok=False, payload=None, error=f"Invalid JSON response: {exc}")
+        return {"ok": False, "payload": None, "error": f"Invalid JSON response: {exc}"}
 
 
 @st.cache_data(ttl=60)
@@ -445,8 +435,9 @@ def load_store_id() -> str:
     result = fetch_json("/stores")
     candidates: list[str] = []
 
-    if result.ok and result.payload:
-        raw_stores = result.payload.get("store_ids", result.payload.get("data", []))
+    if result.get("ok") and result.get("payload"):
+        payload = result.get("payload") or {}
+        raw_stores = payload.get("store_ids", payload.get("data", []))
         if isinstance(raw_stores, list):
             for store in raw_stores:
                 if isinstance(store, dict):
@@ -463,16 +454,16 @@ def load_store_id() -> str:
             continue
         seen.add(store_id)
         metrics = fetch_json(f"/stores/{store_id}/metrics")
-        if not metrics.ok or not metrics.payload:
+        if not metrics.get("ok") or not metrics.get("payload"):
             continue
-        if int(metrics.payload.get("unique_visitors", 0) or 0) > 0:
+        if int(metrics.get("payload", {}).get("unique_visitors", 0) or 0) > 0:
             return store_id
 
     return candidates[0] if candidates else DEFAULT_STORE_ID
 
 
 @st.cache_data(ttl=10)
-def load_health() -> ApiResponse:
+def load_health() -> dict[str, Any]:
     return fetch_json("/health")
 
 
@@ -704,14 +695,14 @@ with st.spinner("Loading store insights..."):
     heatmap_result = fetch_json(f"/stores/{store_id}/heatmap")
     anomalies_result = fetch_json(f"/stores/{store_id}/anomalies")
 
-if not metrics_result.ok and not funnel_result.ok and not heatmap_result.ok and not anomalies_result.ok:
+if not metrics_result.get("ok") and not funnel_result.get("ok") and not heatmap_result.get("ok") and not anomalies_result.get("ok"):
     render_centered_message("Live store insights are temporarily unavailable.")
     st.stop()
 
-metrics: dict[str, Any] = metrics_result.payload if metrics_result.ok and metrics_result.payload else {}
+metrics: dict[str, Any] = metrics_result.get("payload") if metrics_result.get("ok") and metrics_result.get("payload") else {}
 funnel_stages: list[dict[str, Any]] = []
-if funnel_result.ok and funnel_result.payload:
-    raw_stages = funnel_result.payload.get("stages", [])
+if funnel_result.get("ok") and funnel_result.get("payload"):
+    raw_stages = funnel_result.get("payload", {}).get("stages", [])
     if isinstance(raw_stages, list):
         funnel_stages = raw_stages
 stage_counts = {str(stage.get("stage", "")).upper().replace(" ", "_"): stage for stage in funnel_stages if isinstance(stage, dict)}
@@ -722,12 +713,12 @@ has_any_data = any(
         any(int(stage.get("count", 0) or 0) > 0 for stage in funnel_stages if isinstance(stage, dict)),
     ]
 )
-if metrics_result.ok and funnel_result.ok and not has_any_data:
+if metrics_result.get("ok") and funnel_result.get("ok") and not has_any_data:
     st.warning(
         f"No analytics data was found for store '{store_id}'. Check DATABASE_URL and seeding before trusting zero values."
     )
 
-if metrics_result.ok and metrics_result.payload:
+if metrics_result.get("ok") and metrics_result.get("payload"):
     active_visitors = metrics.get(
         "active_visitors",
         max(int(metrics.get("total_entries", 0) or 0) - int(metrics.get("total_exits", 0) or 0), 0),
@@ -749,7 +740,7 @@ else:
     st.info("Customer metrics are temporarily unavailable right now.")
 
 render_section_heading("Customer Activity Overview", "Today's customer flow and store activity at a glance.")
-if metrics_result.ok or funnel_result.ok:
+if metrics_result.get("ok") or funnel_result.get("ok"):
     store_entries = stage_counts.get("ENTRY", {}).get("count", 0)
     billing_interactions = stage_counts.get("BILLING_QUEUE", {}).get("count", 0)
     purchases = metrics.get("converted_visitors", stage_counts.get("PURCHASE", {}).get("count", 0))
@@ -768,8 +759,8 @@ else:
     st.info("Customer activity is temporarily unavailable right now.")
 
 render_section_heading("Customer Journey Funnel", "How customers progress from arrival and re-entry to purchase.")
-if funnel_result.ok and funnel_result.payload:
-    stages = funnel_result.payload.get("stages", [])
+if funnel_result.get("ok") and funnel_result.get("payload"):
+    stages = funnel_result.get("payload", {}).get("stages", [])
     funnel_df = normalize_funnel_stages(stages if isinstance(stages, list) else [])
     if not funnel_df.empty:
         st.plotly_chart(build_funnel_chart(funnel_df), use_container_width=True)
@@ -780,8 +771,8 @@ else:
     st.info("Funnel data is temporarily unavailable right now.")
 
 render_section_heading("Zone Performance", "Traffic concentration and dwell behavior across the store.")
-if heatmap_result.ok and heatmap_result.payload:
-    zones = heatmap_result.payload.get("zones", heatmap_result.payload.get("value", []))
+if heatmap_result.get("ok") and heatmap_result.get("payload"):
+    zones = heatmap_result.get("payload", {}).get("zones", heatmap_result.get("payload", {}).get("value", []))
     heatmap_df = pd.DataFrame(zones if isinstance(zones, list) else [])
     if not heatmap_df.empty:
         if "avg_dwell_ms" in heatmap_df.columns:
@@ -819,8 +810,8 @@ else:
     st.info("Zone performance data is temporarily unavailable right now.")
 
 render_section_heading("Operational Alerts", "Business-focused alerts for retail managers.")
-if anomalies_result.ok and anomalies_result.payload:
-    anomalies = anomalies_result.payload.get("anomalies", anomalies_result.payload.get("value", []))
+if anomalies_result.get("ok") and anomalies_result.get("payload"):
+    anomalies = anomalies_result.get("payload", {}).get("anomalies", anomalies_result.get("payload", {}).get("value", []))
     if isinstance(anomalies, list) and anomalies:
         for row_start in range(0, len(anomalies), 3):
             cols = st.columns(3)
