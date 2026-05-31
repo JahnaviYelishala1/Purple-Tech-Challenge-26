@@ -223,7 +223,8 @@ Dashboard capabilities:
 Optional environment variables:
 
 - `API_BASE_URL` (default: `http://127.0.0.1:8000`)
-- `DEFAULT_STORE_ID` (default: `STORE_BLR_002` for the deployed demo)
+- `DEFAULT_STORE_ID` (default: `STORE_BLR_001` for the deployed demo)
+- `DEMO_SEED_ON_STARTUP` (default: `false`; set to `true` on the Render API service to seed demo data only when the target store is empty)
 
 ### Dashboard Walkthrough
 

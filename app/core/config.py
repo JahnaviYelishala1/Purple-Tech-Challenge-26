@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     debug: bool = Field(default=False, validation_alias="APP_DEBUG")
     api_v1_prefix: str = Field(default="/api/v1", validation_alias="API_V1_PREFIX")
     log_level: str = Field(default="INFO", validation_alias="LOG_LEVEL")
+    demo_seed_on_startup: bool = Field(default=False, validation_alias="DEMO_SEED_ON_STARTUP")
 
     @model_validator(mode="after")
     def reject_ephemeral_production_sqlite(self) -> "Settings":

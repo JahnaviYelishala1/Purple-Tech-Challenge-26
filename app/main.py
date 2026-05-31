@@ -17,7 +17,8 @@ from app.api.v1.router import api_router
 from app.core.config import get_settings
 from app.core.logging import configure_logging
 from app.db.base import Base
-from app.db.session import engine
+from app.db.demo_seed import seed_demo_data_if_empty
+from app.db.session import SessionLocal, engine
 import app.models  # noqa: F401
 
 settings = get_settings()
@@ -31,6 +32,11 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
     # Ensure schema exists for local and container runs before serving requests.
     Base.metadata.create_all(bind=engine)
+    if settings.demo_seed_on_startup:
+        with SessionLocal() as db:
+            seeded = seed_demo_data_if_empty(db)
+            if seeded:
+                logger.info("Seeded demo dashboard data")
     logger.info("Store Intelligence API is starting")
     yield
     logger.info("Store Intelligence API is shutting down")

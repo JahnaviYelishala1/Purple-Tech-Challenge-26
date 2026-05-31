@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: store-intelligence-api
+    name: jahnavi-purple-tech-challenge-2026
     runtime: python
     plan: free
     buildCommand: pip install -r requirements.txt
@@ -15,11 +15,13 @@ services:
         value: INFO
       - key: DATABASE_URL
         fromDatabase:
-          name: store-intelligence-db
+          name: purple-tech-challenge-2026
           property: connectionString
+      - key: DEMO_SEED_ON_STARTUP
+        value: "true"
 
   - type: web
-    name: store-intelligence-dashboard
+    name: jahnavi-purple-tech-challenge-2026-dashboard
     runtime: python
     plan: free
     buildCommand: pip install -r requirements.txt
@@ -28,12 +30,15 @@ services:
       - key: PYTHON_VERSION
         value: 3.12.3
       - key: API_BASE_URL
-        sync: false
+        fromService:
+          type: web
+          name: jahnavi-purple-tech-challenge-2026
+          envVarKey: RENDER_EXTERNAL_URL
       - key: DEFAULT_STORE_ID
         value: STORE_BLR_001
 
 databases:
-  - name: store-intelligence-db
+  - name: purple-tech-challenge-2026
     plan: free
     databaseName: store_intelligence
     user: store_intelligence
