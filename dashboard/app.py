@@ -13,7 +13,13 @@ import streamlit as st
 from streamlit_autorefresh import st_autorefresh
 
 
-API_BASE_URL = os.getenv("API_BASE_URL", "http://127.0.0.1:8000").rstrip("/")
+API_BASE_URL = (
+    os.environ.get("API_BASE_URL")
+    or os.environ.get("api_base_url")
+    or os.environ.get("Api_Base_Url")
+    or os.environ.get("API_URL")
+    or os.getenv("API_BASE_URL", "http://127.0.0.1:8000")
+).rstrip("/")
 DEFAULT_STORE_ID = os.getenv("DEFAULT_STORE_ID", "STORE_BLR_001")
 KNOWN_STORE_IDS = [
     store_id.strip()
@@ -681,7 +687,10 @@ health_result = load_health()
 render_top_nav()
 
 if not health_result.ok:
-    render_centered_message("Backend Offline")
+    msg = "Backend Offline"
+    if health_result.error:
+        msg = f"{msg} — {health_result.error}"
+    render_centered_message(msg)
     st.stop()
 
 store_id = load_store_id()
@@ -695,7 +704,11 @@ with st.spinner("Loading real-time store intelligence..."):
     anomalies_result = fetch_json(f"/stores/{store_id}/anomalies")
 
 if not metrics_result.ok and not funnel_result.ok and not activity_result.ok and not heatmap_result.ok and not anomalies_result.ok:
-    render_centered_message("Backend Offline")
+    errors = [r.error for r in (metrics_result, funnel_result, activity_result, heatmap_result, anomalies_result) if r and r.error]
+    msg = "Backend Offline"
+    if errors:
+        msg = f"{msg} — {errors[0]}"
+    render_centered_message(msg)
     st.stop()
 
 metrics: dict[str, Any] = metrics_result.payload if metrics_result.ok and metrics_result.payload else {}
