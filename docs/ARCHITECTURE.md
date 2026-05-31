@@ -71,3 +71,11 @@ The canonical architecture diagram is included in the repository:
 ## Notes
 
 - The modular monolith makes it straightforward to extract services later; mapping is intentionally explicit to help judges evaluate responsibility boundaries.
+
+## ER Diagram
+
+An ER diagram visualizing the primary entities (`Store`, `Camera`, `Event`, `VisitorSession`, `Transaction`) is included in the repository for quick reference:
+
+![ER Diagram](ER-diag.png)
+
+Use `docs/ER-diag.png` when preparing the judge slidedeck or README visuals.
