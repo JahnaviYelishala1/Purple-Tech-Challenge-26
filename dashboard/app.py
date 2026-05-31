@@ -11,6 +11,7 @@ import plotly.graph_objects as go
 import requests
 import streamlit as st
 from streamlit_autorefresh import st_autorefresh
+import logging
 
 
 API_BASE_URL = (
@@ -20,6 +21,10 @@ API_BASE_URL = (
     or os.environ.get("API_URL")
     or os.getenv("API_BASE_URL", "http://127.0.0.1:8000")
 ).rstrip("/")
+
+# Log the resolved API base so deployment logs make the source of truth obvious
+logger = logging.getLogger("dashboard")
+logger.info("Dashboard starting with API_BASE_URL=%s", API_BASE_URL)
 DEFAULT_STORE_ID = os.getenv("DEFAULT_STORE_ID", "STORE_BLR_001")
 KNOWN_STORE_IDS = [
     store_id.strip()
