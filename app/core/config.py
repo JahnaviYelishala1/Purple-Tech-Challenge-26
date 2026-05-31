@@ -24,6 +24,7 @@ class Settings(BaseSettings):
     api_v1_prefix: str = Field(default="/api/v1", validation_alias="API_V1_PREFIX")
     log_level: str = Field(default="INFO", validation_alias="LOG_LEVEL")
     demo_seed_on_startup: bool = Field(default=False, validation_alias="DEMO_SEED_ON_STARTUP")
+    reentry_window_minutes: int = Field(default=30, validation_alias="REENTRY_WINDOW_MINUTES")
     pos_conversion_window_minutes: int = Field(default=30, validation_alias="POS_CONVERSION_WINDOW_MINUTES")
 
     @model_validator(mode="after")

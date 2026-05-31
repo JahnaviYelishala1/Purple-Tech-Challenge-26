@@ -13,6 +13,7 @@ from ultralytics import YOLO
 
 from camera_roles import camera_ids_for_role, get_camera_role
 from event_publisher import publish_event
+from event_confidence import resolve_event_confidence
 
 
 @dataclass
@@ -55,7 +56,15 @@ def current_timestamp() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
-def make_exit_event(track_id: int, camera_id: str, store_id: str) -> dict[str, object]:
+def make_exit_event(
+    track_id: int,
+    camera_id: str,
+    store_id: str,
+    *,
+    detection_confidence: float | None = None,
+    tracker_confidence: float | None = None,
+    fallback_confidence: float = 0.5,
+) -> dict[str, object]:
     return {
         "event_id": str(uuid.uuid4()),
         "visitor_id": f"track_{track_id}",
@@ -66,7 +75,11 @@ def make_exit_event(track_id: int, camera_id: str, store_id: str) -> dict[str, o
         "zone_id": "exit",
         "dwell_ms": 0,
         "is_staff": False,
-        "confidence": 0.95,
+        "confidence": resolve_event_confidence(
+            detection_confidence=detection_confidence,
+            tracker_confidence=tracker_confidence,
+            fallback_confidence=fallback_confidence,
+        ),
         "metadata": {
             "queue_depth": None,
             "sku_zone": "exit",
@@ -185,7 +198,12 @@ def detect_exits(
 
                     previous_side = last_side_by_track.get(track_id)
                     if camera_role == "EXIT" and is_exit_crossing(previous_side, side) and track_id not in triggered_track_ids:
-                        event = make_exit_event(track_id=track_id, camera_id=camera_id, store_id=store_id)
+                        event = make_exit_event(
+                            track_id=track_id,
+                            camera_id=camera_id,
+                            store_id=store_id,
+                            detection_confidence=conf,
+                        )
                         triggered_track_ids.add(track_id)
                         stats.exits_detected += 1
                         stats.events.append(event)

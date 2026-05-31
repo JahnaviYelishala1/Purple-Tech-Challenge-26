@@ -107,10 +107,16 @@ The current camera-role mapping is externalized in [config/camera_roles.json](..
 - `CAM1` - `ZONE`
 - `CAM2` - `ZONE`
 - `CAM3` - `ENTRANCE`
-- `CAM4` - `STAFF`
+- `CAM4` - `EXIT`
 - `CAM5` - `BILLING`
 
 The code intentionally avoids hardcoding these roles in detector logic. If the dataset changes, this file is the only place that should need an update.
+
+Re-entry is handled with a lightweight time-window approach instead of a re-identification model. When a visitor exits and then returns within `REENTRY_WINDOW_MINUTES`, the backend reclassifies the next arrival event as `REENTRY` and opens a new session for the same visitor ID. That keeps the journey continuous without changing the schema or introducing additional models.
+
+EXIT events are first-class events and are used to close active sessions. That closure updates session duration metrics, keeps the funnel monotonic, and preserves the session history needed for later re-entry classification.
+
+Event confidence is sourced in order from the detector confidence, the tracker confidence, and a fallback only when neither is available. The emitted event payload keeps the confidence field explicit so downstream analytics can trust the value without recomputing it.
 
 ## 13. Staff Filtering Strategy
 
@@ -136,3 +142,5 @@ Conversion is now correlated with the transaction dataset instead of synthetic p
 - The CV pipeline uses YOLOv8 plus simple tracking heuristics; it is intentionally lightweight rather than production-grade.
 - If a future dataset revision introduces a dedicated exit camera, that role can be added to the camera-role config without code changes.
 - The dashboard is deliberately business-facing and omits backend diagnostics.
+- Re-entry uses a configurable window instead of persistent identity matching.
+- Group/party tracking is out of scope for this submission.

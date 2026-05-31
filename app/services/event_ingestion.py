@@ -38,28 +38,34 @@ class EventIngestionService:
                 continue
 
             seen_ids.add(event_id)
+            persisted_event = event
+            if event.event_type is EventType.ENTRY and session_service.is_recent_reentry(event, db):
+                persisted_event = event.model_copy(update={"event_type": EventType.REENTRY})
+
             rows_to_insert.append(
                 EventModel(
                     event_id=event_id,
-                    store_id=event.store_id,
-                    camera_id=event.camera_id,
-                    visitor_id=event.visitor_id,
-                    event_type=event.event_type.value,
-                    timestamp=event.timestamp,
-                    zone_id=event.zone_id,
-                    dwell_ms=event.dwell_ms,
-                    is_staff=event.is_staff,
-                    confidence=event.confidence,
-                    queue_depth=event.metadata.queue_depth if event.metadata else None,
-                    sku_zone=event.metadata.sku_zone if event.metadata else None,
-                    session_seq=event.metadata.session_seq if event.metadata else None,
+                    store_id=persisted_event.store_id,
+                    camera_id=persisted_event.camera_id,
+                    visitor_id=persisted_event.visitor_id,
+                    event_type=persisted_event.event_type.value,
+                    timestamp=persisted_event.timestamp,
+                    zone_id=persisted_event.zone_id,
+                    dwell_ms=persisted_event.dwell_ms,
+                    is_staff=persisted_event.is_staff,
+                    confidence=persisted_event.confidence,
+                    queue_depth=persisted_event.metadata.queue_depth if persisted_event.metadata else None,
+                    sku_zone=persisted_event.metadata.sku_zone if persisted_event.metadata else None,
+                    session_seq=persisted_event.metadata.session_seq if persisted_event.metadata else None,
                 )
             )
 
-            if event.event_type is EventType.ENTRY:
-                session_service.handle_entry_event(event, db)
-            elif event.event_type is EventType.EXIT:
-                session_service.handle_exit_event(event, db)
+            if persisted_event.event_type is EventType.ENTRY:
+                session_service.handle_entry_event(persisted_event, db)
+            elif persisted_event.event_type is EventType.REENTRY:
+                session_service.handle_reentry_event(persisted_event, db)
+            elif persisted_event.event_type is EventType.EXIT:
+                session_service.handle_exit_event(persisted_event, db)
 
         if rows_to_insert:
             db.add_all(rows_to_insert)

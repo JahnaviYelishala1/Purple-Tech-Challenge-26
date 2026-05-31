@@ -8,6 +8,8 @@ from app.models.session import VisitorSession
 class FunnelService:
     """Service for computing store funnel analytics."""
 
+    ENTRY_EVENT_TYPES = ("ENTRY", "REENTRY")
+
     def get_store_funnel(self, store_id: str, db: Session) -> dict[str, list[dict[str, float | int | str]]]:
         """Return ordered funnel stages and dropoff percentages for a store."""
 
@@ -16,7 +18,7 @@ class FunnelService:
                 "ENTRY",
                 select(func.count(distinct(EventModel.visitor_id))).where(
                     EventModel.store_id == store_id,
-                    EventModel.event_type == "ENTRY",
+                    EventModel.event_type.in_(self.ENTRY_EVENT_TYPES),
                     EventModel.is_staff.is_(False),
                 ),
             ),

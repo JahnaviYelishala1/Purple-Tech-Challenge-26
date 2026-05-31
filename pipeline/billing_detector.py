@@ -19,6 +19,7 @@ from ultralytics import YOLO
 
 from camera_roles import camera_ids_for_role, get_camera_role
 from event_publisher import publish_event
+from event_confidence import resolve_event_confidence
 
 
 @dataclass
@@ -75,7 +76,15 @@ def point_in_rectangle(x: float, y: float, rect: tuple[int, int, int, int]) -> b
     return x1 <= x <= x2 and y1 <= y <= y2
 
 
-def make_billing_event(track_id: int, camera_id: str, store_id: str) -> dict[str, Any]:
+def make_billing_event(
+    track_id: int,
+    camera_id: str,
+    store_id: str,
+    *,
+    detection_confidence: float | None = None,
+    tracker_confidence: float | None = None,
+    fallback_confidence: float = 0.5,
+) -> dict[str, Any]:
     return {
         "event_id": str(uuid.uuid4()),
         "visitor_id": f"track_{track_id}",
@@ -86,7 +95,11 @@ def make_billing_event(track_id: int, camera_id: str, store_id: str) -> dict[str
         "zone_id": "billing",
         "dwell_ms": 0,
         "is_staff": False,
-        "confidence": 0.95,
+        "confidence": resolve_event_confidence(
+            detection_confidence=detection_confidence,
+            tracker_confidence=tracker_confidence,
+            fallback_confidence=fallback_confidence,
+        ),
         "metadata": {
             "queue_depth": 1,
             "sku_zone": "billing",
@@ -202,6 +215,7 @@ def detect_billing_queue(
                             track_id=track_id,
                             camera_id=camera_id,
                             store_id=store_id,
+                            detection_confidence=conf,
                         )
                         triggered_track_ids.add(track_id)
                         stats.billing_events_detected += 1

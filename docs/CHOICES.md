@@ -202,6 +202,18 @@ Streamlit was selected for the dashboard because it enables rapid, interactive U
 
 The final implementation keeps camera roles in `config/camera_roles.json` instead of hardcoding them in the detectors. That choice makes the code easier to realign if the challenge dataset changes while keeping the detector scripts simple.
 
+## Reentry Strategy
+
+Re-entry is handled with a lightweight time window rather than a re-identification network. When the same visitor ID reappears after an EXIT inside `REENTRY_WINDOW_MINUTES`, the backend stores the new arrival as `REENTRY`. I chose this because it preserves the journey semantics the challenge cares about without adding fragile identity-matching logic.
+
+## Exit Strategy
+
+EXIT is a first-class camera role and a first-class event. The exit event closes the active session, which keeps session duration correct and prevents downstream analytics from treating a departed visitor as still active.
+
+## Confidence Propagation
+
+Confidence now follows a simple precedence order: detector confidence, tracker confidence, then a fallback only if both are missing. I chose this so the payload keeps a real signal from the CV pipeline instead of a fixed placeholder value.
+
 ## Staff Filtering
 
 The staff-handling approach is intentionally lightweight: camera-role metadata marks staff traffic, and the analytics layer filters those events out. I rejected a separate staff-identity model because it would add complexity without improving the challenge score in a meaningful way.
@@ -213,5 +225,6 @@ Conversion now depends on POS transactions plus billing-zone evidence within a c
 ## Constraints and Limitations
 
 - The implementation still uses simple YOLOv8 tracking heuristics instead of a full re-identification pipeline.
-- The exit-role mapping remains configurable; if the dataset introduces an exit camera later, it can be enabled by editing the config file.
+- Re-entry uses a configurable window rather than permanent identity persistence.
+- Group/party tracking is not implemented.
 - Synthetic demo data is still available for smoke tests, but the live analytics path is now driven by the actual camera-role and transaction logic.

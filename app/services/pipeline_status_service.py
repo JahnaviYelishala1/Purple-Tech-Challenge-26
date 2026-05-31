@@ -17,6 +17,7 @@ from pipeline.camera_roles import camera_ids_for_role, load_camera_roles, role_l
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 CAMERA_MAPPING_PATH = PROJECT_ROOT / "camera_mapping.json"
 TARGET_ROLES = ("ENTRANCE", "BILLING", "ZONE", "EXIT")
+ENTRY_EVENT_TYPES = ("ENTRY", "REENTRY")
 
 
 class PipelineStatusService:
@@ -44,10 +45,20 @@ class PipelineStatusService:
             labels[str(camera_id)] = str(raw_label).replace("_", " ").title()
         return labels
 
-    def _load_latest_event(self, db: Session, store_id: str, *, event_type: str | None = None, camera_id: str | None = None) -> EventModel | None:
+    def _load_latest_event(
+        self,
+        db: Session,
+        store_id: str,
+        *,
+        event_type: str | tuple[str, ...] | None = None,
+        camera_id: str | None = None,
+    ) -> EventModel | None:
         statement = select(EventModel).where(EventModel.store_id == store_id)
         if event_type is not None:
-            statement = statement.where(EventModel.event_type == event_type)
+            if isinstance(event_type, tuple):
+                statement = statement.where(EventModel.event_type.in_(event_type))
+            else:
+                statement = statement.where(EventModel.event_type == event_type)
         if camera_id is not None:
             statement = statement.where(EventModel.camera_id == camera_id)
         statement = statement.order_by(EventModel.timestamp.desc(), EventModel.id.desc())
@@ -85,12 +96,12 @@ class PipelineStatusService:
             for camera_id in labels.keys()
         ]
 
-        latest_entry = self._load_latest_event(db, store_id, event_type="ENTRY")
+        latest_entry = self._load_latest_event(db, store_id, event_type=ENTRY_EVENT_TYPES)
         latest_billing = self._load_latest_event(db, store_id, event_type="BILLING_QUEUE_JOIN")
 
         activity_statement = select(
             func.count(),
-            func.count().filter(EventModel.event_type == "ENTRY"),
+            func.count().filter(EventModel.event_type.in_(ENTRY_EVENT_TYPES)),
             func.count().filter(EventModel.event_type == "BILLING_QUEUE_JOIN"),
         ).where(
             EventModel.store_id == store_id,

@@ -316,20 +316,23 @@ The current implementation is aligned to the challenge camera-role mapping store
 - `CAM1` - `ZONE`
 - `CAM2` - `ZONE`
 - `CAM3` - `ENTRANCE`
-- `CAM4` - `STAFF`
+- `CAM4` - `EXIT`
 - `CAM5` - `BILLING`
 
 Operational assumptions used by the code:
 
-- Staff tracks are filtered by camera role before they reach visitor session logic or analytics.
+- Staff traffic is filtered by the `is_staff` flag before it reaches visitor session logic or analytics.
+- A visitor who returns shortly after an EXIT is reclassified as `REENTRY` within the configurable `REENTRY_WINDOW_MINUTES` window.
 - Conversion is measured from a billing-zone event plus a POS transaction within the configurable correlation window (`POS_CONVERSION_WINDOW_MINUTES`).
+- Event confidence uses detector confidence first, tracker confidence second, and a small fallback only when neither is present.
 - The live dashboard focuses on KPIs, funnel, zone performance, and alerts; backend diagnostics are intentionally kept out of the business view.
-- The current exit-role mapping is configurable. If a dedicated exit camera is present in a later dataset revision, add it to `config/camera_roles.json` and the detectors will honor it without code changes.
 
 Known limitations:
 
 - If the dataset revises the camera roles, only `config/camera_roles.json` should need updating.
 - The current CV scripts still depend on YOLOv8 detections and simple tracking heuristics; they are intentionally lightweight for the hackathon setting.
+- Re-entry is handled with a time window rather than heavy re-identification.
+- Group/party tracking is not implemented.
 
 ## Links to additional documentation
 
