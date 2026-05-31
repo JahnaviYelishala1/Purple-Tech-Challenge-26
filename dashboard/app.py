@@ -14,7 +14,12 @@ from streamlit_autorefresh import st_autorefresh
 
 
 API_BASE_URL = os.getenv("API_BASE_URL", "http://127.0.0.1:8000").rstrip("/")
-DEFAULT_STORE_ID = os.getenv("DEFAULT_STORE_ID", "STORE_BLR_002")
+DEFAULT_STORE_ID = os.getenv("DEFAULT_STORE_ID", "STORE_BLR_001")
+KNOWN_STORE_IDS = [
+    store_id.strip()
+    for store_id in os.getenv("KNOWN_STORE_IDS", "STORE_BLR_001,store-001,store-002,STORE_BLR_002").split(",")
+    if store_id.strip()
+]
 REFRESH_SECONDS = 10
 
 FUNNEL_ORDER = ["ENTRY", "ZONE_VISIT", "BILLING_QUEUE", "PURCHASE"]
@@ -427,19 +432,32 @@ def fetch_json(path: str) -> ApiResponse:
 @st.cache_data(ttl=60)
 def load_store_id() -> str:
     result = fetch_json("/stores")
-    if not result.ok or not result.payload:
-        return DEFAULT_STORE_ID
+    candidates: list[str] = []
 
-    raw_stores = result.payload.get("data", [])
-    if isinstance(raw_stores, list) and raw_stores:
-        first_store = raw_stores[0]
-        if isinstance(first_store, dict):
-            identifier = first_store.get("id") or first_store.get("name")
-            if identifier is not None:
-                return str(identifier)
-        return str(first_store)
+    if result.ok and result.payload:
+        raw_stores = result.payload.get("store_ids", result.payload.get("data", []))
+        if isinstance(raw_stores, list):
+            for store in raw_stores:
+                if isinstance(store, dict):
+                    identifier = store.get("store_id") or store.get("name")
+                    if identifier is not None:
+                        candidates.append(str(identifier))
+                elif store is not None:
+                    candidates.append(str(store))
 
-    return DEFAULT_STORE_ID
+    candidates.extend([DEFAULT_STORE_ID, *KNOWN_STORE_IDS])
+    seen: set[str] = set()
+    for store_id in candidates:
+        if store_id in seen:
+            continue
+        seen.add(store_id)
+        metrics = fetch_json(f"/stores/{store_id}/metrics")
+        if not metrics.ok or not metrics.payload:
+            continue
+        if int(metrics.payload.get("unique_visitors", 0) or 0) > 0:
+            return store_id
+
+    return candidates[0] if candidates else DEFAULT_STORE_ID
 
 
 @st.cache_data(ttl=10)
@@ -667,6 +685,7 @@ if not health_result.ok:
     st.stop()
 
 store_id = load_store_id()
+st.caption(f"Showing store: {store_id}")
 
 with st.spinner("Loading real-time store intelligence..."):
     metrics_result = fetch_json(f"/stores/{store_id}/metrics")
@@ -686,6 +705,17 @@ if funnel_result.ok and funnel_result.payload:
     if isinstance(raw_stages, list):
         funnel_stages = raw_stages
 stage_counts = {str(stage.get("stage", "")).upper().replace(" ", "_"): stage for stage in funnel_stages if isinstance(stage, dict)}
+
+has_any_data = any(
+    [
+        int(metrics.get("unique_visitors", 0) or 0) > 0,
+        any(int(stage.get("count", 0) or 0) > 0 for stage in funnel_stages if isinstance(stage, dict)),
+    ]
+)
+if metrics_result.ok and funnel_result.ok and not has_any_data:
+    st.warning(
+        f"No analytics data was found for store '{store_id}'. Check DATABASE_URL and seeding before trusting zero values."
+    )
 
 if metrics_result.ok and metrics_result.payload:
     active_visitors = metrics.get(

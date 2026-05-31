@@ -9,6 +9,7 @@ from app.api.events import router as events_router
 from app.api.heatmap import router as heatmap_router
 from app.api.funnel import router as funnel_router
 from app.api.pipeline import router as pipeline_router
+from app.api.stores import router as analytics_stores_router
 from app.api.metrics import router as metrics_router
 from app.api.transactions import router as transactions_router
 from app.core.middleware import add_request_logging_middleware
@@ -43,6 +44,7 @@ app.include_router(events_router)
 app.include_router(heatmap_router)
 app.include_router(funnel_router)
 app.include_router(pipeline_router)
+app.include_router(analytics_stores_router)
 app.include_router(metrics_router)
 app.include_router(transactions_router)
 

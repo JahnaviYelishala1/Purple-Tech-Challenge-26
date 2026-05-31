@@ -14,7 +14,9 @@ services:
       - key: LOG_LEVEL
         value: INFO
       - key: DATABASE_URL
-        value: sqlite+pysqlite:////tmp/store_intelligence.db
+        fromDatabase:
+          name: store-intelligence-db
+          property: connectionString
 
   - type: web
     name: store-intelligence-dashboard
@@ -27,3 +29,11 @@ services:
         value: 3.12.3
       - key: API_BASE_URL
         sync: false
+      - key: DEFAULT_STORE_ID
+        value: STORE_BLR_001
+
+databases:
+  - name: store-intelligence-db
+    plan: free
+    databaseName: store_intelligence
+    user: store_intelligence

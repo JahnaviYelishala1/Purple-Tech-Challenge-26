@@ -1,6 +1,7 @@
 from functools import lru_cache
 
-from pydantic import Field
+from pydantic import Field, model_validator
+from sqlalchemy.engine import make_url
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -22,6 +23,16 @@ class Settings(BaseSettings):
     debug: bool = Field(default=False, validation_alias="APP_DEBUG")
     api_v1_prefix: str = Field(default="/api/v1", validation_alias="API_V1_PREFIX")
     log_level: str = Field(default="INFO", validation_alias="LOG_LEVEL")
+
+    @model_validator(mode="after")
+    def reject_ephemeral_production_sqlite(self) -> "Settings":
+        """Avoid silently running production on disposable SQLite storage."""
+
+        if self.environment.lower() == "production":
+            drivername = make_url(self.database_url).drivername
+            if drivername.startswith("sqlite"):
+                raise ValueError("Production DATABASE_URL must point to persistent Postgres, not SQLite.")
+        return self
 
     model_config = SettingsConfigDict(
         env_file=".env",
