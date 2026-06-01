@@ -583,6 +583,8 @@ def format_zone_label(value: Any) -> str:
 
     normalized = raw_text.upper().replace(" ", "_")
     label_map = {
+        "ELECTRONICS": "Makeup",
+        "GROCERY": "Skincare",
         "MAKEUP": "Makeup",
         "SKIN": "Skincare",
         "SKINCARE": "Skincare",

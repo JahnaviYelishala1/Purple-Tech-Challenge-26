@@ -7,6 +7,10 @@ from app.schemas.heatmap import StoreHeatmapResponse, ZoneHeatmapMetric
 
 
 LEGACY_ZONE_LABELS = {
+    # Legacy demo labels still present in old databases; map to business labels.
+    "ELECTRONICS": "Makeup",
+    "GROCERY": "Skincare",
+
     # Dataset-aligned department labels for dashboard display.
     "MAKEUP": "Makeup",
     "SKIN": "Skincare",
