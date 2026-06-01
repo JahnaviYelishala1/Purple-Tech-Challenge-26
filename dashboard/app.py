@@ -577,8 +577,30 @@ def normalize_funnel_stages(raw_stages: list[dict[str, Any]]) -> pd.DataFrame:
 
 
 def format_zone_label(value: Any) -> str:
-    text = str(value).strip().replace("_", " ")
-    return text.title() if text else "Unknown"
+    raw_text = str(value).strip()
+    if not raw_text:
+        return "Unknown"
+
+    normalized = raw_text.upper().replace(" ", "_")
+    label_map = {
+        "MAKEUP": "Makeup",
+        "SKIN": "Skincare",
+        "SKINCARE": "Skincare",
+        "BATH_AND_BODY": "Bath & Body",
+        "BATH-AND-BODY": "Bath & Body",
+        "BILLING_AREA": "Billing Area",
+        "BILLING": "Billing Area",
+        "ZONE_A": "Makeup",
+        "ZONE_B": "Skincare",
+        "ZONE_C": "Bath & Body",
+        "AISLE-A": "Makeup",
+        "AISLE-B": "Skincare",
+        "AISLE-C": "Bath & Body",
+    }
+    if normalized in label_map:
+        return label_map[normalized]
+
+    return raw_text.replace("_", " ").title()
 
 
 def render_section_heading(title: str, caption: str) -> None:

@@ -6,8 +6,48 @@ from app.models.session import VisitorSession
 from app.schemas.heatmap import StoreHeatmapResponse, ZoneHeatmapMetric
 
 
+LEGACY_ZONE_LABELS = {
+    # Dataset-aligned department labels for dashboard display.
+    "MAKEUP": "Makeup",
+    "SKIN": "Skincare",
+    "SKINCARE": "Skincare",
+    "BATH-AND-BODY": "Bath & Body",
+    "BATH_AND_BODY": "Bath & Body",
+
+    # Neutral internal zone identifiers mapped to business labels before rendering.
+    "AISLE-A": "Makeup",
+    "AISLE-B": "Skincare",
+    "AISLE-C": "Bath & Body",
+    "ZONE_A": "Makeup",
+    "ZONE_B": "Skincare",
+    "ZONE_C": "Bath & Body",
+
+    # Billing area remains explicit.
+    "BILLING": "Billing Area",
+    "BILLING_AREA": "Billing Area",
+}
+
+
 class HeatmapService:
     """Service for computing zone-level store heatmap analytics."""
+
+    @staticmethod
+    def _display_zone_label(zone_id: str | None) -> str:
+        if zone_id is None:
+            return "Unknown"
+
+        raw_value = str(zone_id).strip()
+        if not raw_value:
+            return "Unknown"
+
+        normalized = raw_value.upper()
+        if normalized in LEGACY_ZONE_LABELS:
+            return LEGACY_ZONE_LABELS[normalized]
+
+        if raw_value.isupper():
+            return raw_value.replace("_", " ").title()
+
+        return raw_value.replace("_", " ").title()
 
     def get_store_heatmap(self, store_id: str, db: Session) -> StoreHeatmapResponse:
         """Return heatmap metrics for a store."""
@@ -36,7 +76,7 @@ class HeatmapService:
             max_visit_count = max(max_visit_count, visits)
             zone_metrics.append(
                 ZoneHeatmapMetric(
-                    zone_id=str(zone_id),
+                    zone_id=self._display_zone_label(str(zone_id)),
                     visit_count=visits,
                     avg_dwell_seconds=float(avg_dwell_ms or 0.0) / 1000.0,
                     normalized_score=0.0,
